@@ -14,7 +14,7 @@ RUN mkdir -p ${EXEC_DIR} \
     && mkdir -p ${DATA_DIR}/outputs
 
 #Copy executable
-COPY build-4-linux ${EXEC_DIR}/
+COPY build-4-linux/nyxus.exe ${EXEC_DIR}/
 RUN chmod +x ${EXEC_DIR}/nyxus.exe
 
 WORKDIR ${EXEC_DIR}
