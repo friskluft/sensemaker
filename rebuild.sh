@@ -3,8 +3,7 @@
 #=== Request echoing of each command executed 
 set -x
 
-# set OPT = "-c -Ofast" 
-# echo "$OPT"
+WORKDIR=$(pwd)
 
 CXX=/usr/local/gcc94/bin/gcc
 export CXX
@@ -12,7 +11,7 @@ export CXX
 GXX=/usr/local/gcc94/bin/g++
 export GXX
 
-INCLU='-I /home/ec2-user/work/nyxus/lib/fastloader -I /home/ec2-user/work/nyxus/lib/hedgehog -I /usr/include/python3.7m -I /home/ec2-user/work/nyxus/lib/pybind11/include -I /home/ec2-user/gcc_install/gcc-9.4.0/isl-0.18/interface '
+INCLU="-I ${WORKDIR}/lib/fastloader -I ${WORKDIR}/lib/hedgehog -I ${WORKDIR}/lib/pybind11/include -I /usr/include/python3.7m -I /home/ec2-user/gcc_install/gcc-9.4.0/isl-0.18/interface "
 export INCLU
 
 BUILDDIR=./build-4-linux
