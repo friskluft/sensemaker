@@ -210,14 +210,6 @@ void NeighborsFeature::manual_reduce()
 		}
 	}
 
-	//??? DEBUG - count HT hits
-	size_t labCnt = 0;
-	for (auto& bin : HT)
-	{
-		if (bin.size() >=2)
-		labCnt += bin.size();
-	}
-
 	// Broad phase of collision detection
 	for (auto& bin : HT)
 	{
@@ -251,16 +243,6 @@ void NeighborsFeature::manual_reduce()
 		}
 	}
 #endif
-
-
-	//??? DEBUG -- count neighbors
-	size_t dbgCnt = 0;
-	for (auto l : Nyxus::uniqueLabels)
-	{
-		LR& r = Nyxus::roiData[l];
-		int n_neigs = int(r.fvals[NUM_NEIGHBORS][0]);
-		dbgCnt += n_neigs;
-	}
 
 	// Closest neighbors
 	for (auto l : Nyxus::uniqueLabels)
@@ -341,9 +323,10 @@ void NeighborsFeature::manual_reduce()
 			double cenx_n = r_neig.fvals[CENTROID_X][0],
 				ceny_n = r_neig.fvals[CENTROID_Y][0];
 
-			double ang = angle(cenx, ceny, cenx_n, ceny_n);
+			double ang = angle (cenx, ceny, cenx_n, ceny_n);	// radians
+			ang = ang * 180.0;	// degrees because we will later need angles' mode
 			mom2.add(ang);
-			anglesRounded.push_back((int)ang);
+			anglesRounded.push_back(ang);
 		}
 
 		r.fvals[ANG_BW_NEIGHBORS_MEAN][0] = mom2.mean();
