@@ -42,22 +42,40 @@ public:
 	}
 
 	// = W * y + x
-	inline T& xy (int x, int y)	//	T& operator() (int x, int y)
+	inline T& xy(int x, int y)
 	{
+		#ifdef NYX_CHECK_BUFFER_BOUNDS
 		if (x >= W || y >= H)
 		{
-			throw "subscript out of bounds";
+			std::string msg = "index ";
+			msg += std::to_string(x) + ",";
+			msg += std::to_string(y) + " is out of range ";
+			msg += std::to_string(W) + ",";
+			msg += std::to_string(H) + " at ";
+			msg += __FILE__ ":" + std::to_string(__LINE__);
+			throw std::out_of_range(msg.c_str());
 		}
+		#endif
+
 		return this->at(W * y + x);
 	}
 	// = W * y + x
-	inline T xy (int x, int y) const // T operator() (int x, int y) const
+	inline T xy (int x, int y) const
 	{
+		#ifdef NYX_CHECK_BUFFER_BOUNDS
 		if (x >= W || y >= H)
 		{
-			throw "subscript out of bounds";
+			std::string msg = "index ";
+			msg += std::to_string(x) + ",";
+			msg += std::to_string(y) + " is out of range ";
+			msg += std::to_string(W) + ",";
+			msg += std::to_string(H) + " at ";
+			msg += __FILE__ ":" + std::to_string(__LINE__);
+			throw std::out_of_range(msg.c_str());
 			return -1;	// Special value indicating invalid intensity
 		}
+		#endif
+
 		T val = this->at(W * y + x);
 		return val;
 	}
@@ -108,20 +126,38 @@ public:
 	// = W * y + x
 	inline PixIntens & yx /*operator()*/ (int y, int x)
 	{
+		#ifdef NYX_CHECK_BUFFER_BOUNDS
 		if (x >= W || y >= H)
 		{
-			throw "subscript out of bounds";
+			std::string msg = "index ";
+			msg += std::to_string(x) + ",";
+			msg += std::to_string(y) + " is out of range ";
+			msg += std::to_string(W) + ",";
+			msg += std::to_string(H) + " at ";
+			msg += __FILE__ ":" + std::to_string(__LINE__);
+			throw std::out_of_range(msg.c_str());
 		}
+		#endif
+
 		return this->at(W * y + x);
 	}
 	// = W * y + x
 	inline PixIntens yx /*operator()*/ (int y, int x) const
 	{
+		#ifdef NYX_CHECK_BUFFER_BOUNDS
 		if (x >= W || y >= H)
 		{
-			throw "subscript out of bounds";
+			std::string msg = "index ";
+			msg += std::to_string(x) + ",";
+			msg += std::to_string(y) + " is out of range ";
+			msg += std::to_string(W) + ",";
+			msg += std::to_string(H) + " at ";
+			msg += __FILE__ ":" + std::to_string(__LINE__);
+			throw std::out_of_range(msg.c_str());
 			return -1;	// Special value indicating invalid intensity
 		}
+		#endif
+
 		PixIntens val = this->at (W * y + x);
 		return val;
 	}
