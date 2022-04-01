@@ -11,13 +11,13 @@ export CXX
 GXX=/usr/local/gcc94/bin/g++
 export GXX
 
-INCLU="-I ${WORKDIR}/lib/fastloader -I ${WORKDIR}/lib/hedgehog -I ${WORKDIR}/lib/pybind11/include -I /usr/include/python3.7m -I /home/ec2-user/gcc_install/gcc-9.4.0/isl-0.18/interface "
+INCLU="-I /home/ec2-user/libtiffinstall/include -I ${WORKDIR}/lib/fastloader -I ${WORKDIR}/lib/hedgehog -I ${WORKDIR}/lib/pybind11/include -I /usr/include/python3.7m -I /home/ec2-user/gcc_install/gcc-9.4.0/isl-0.18/interface "
 export INCLU
 
 BUILDDIR=./build-4-linux
 export BUILDDIR
 
-OPTS='-c -std=c++17 -O2 -DCHECKTIMING -g '
+OPTS='-c -std=c++17 -O2 -D NO_CHECKTIMING '
 export OPTS
 
 #=== Prepare the build output directory
