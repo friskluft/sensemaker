@@ -1,12 +1,36 @@
-cmake_minimum_required(VERSION 3.12)
-project(SensemakerPythonLibrary)
+cmake_minimum_required(VERSION 3.20)
+project(AxleNyxus)
+
+option(USEGPU "Use GPU" ON) 
+if(USEGPU)
+    set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+    set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${CMAKE_CXX_COMPILER})
+    enable_language("CUDA")
+    add_definitions(-DUSE_GPU)
+    add_definitions(-DCHECKTIMING)
+
+    #---Additionally, the architecture can be set manually eg sm_37 for K80--- 
+    	set(CMAKE_CUDA_ARCHITECTURES 37 CACHE STRING "CUDA architectures" FORCE)
+endif()
 
 #==== Compiler Options
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED True)
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive- ")
+	#==== Explicit check for LibTiff, needed for Windows
+	if (NOT DEFINED ${TIFF_INCLUDE_DIR})
+		set (TIFF_INCLUDE_DIR $ENV{TIFF_INCLUDE_DIR})
+		message(STATUS "TIFF_INCLUDE_DIR " ${TIFF_INCLUDE_DIR})
+	endif()
+
+	if (NOT DEFINED ${TIFF_LIBRARY_RELEASE})
+		set (TIFF_LIBRARY_RELEASE $ENV{TIFF_LIBRARY_RELEASE})
+		message(STATUS "TIFF_LIBRARY_RELEASE " ${TIFF_LIBRARY_RELEASE})
+	endif()
 endif()
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -15,21 +39,16 @@ endif()
 
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 
+#== GTest 
+option(RUN_GTEST "Downloads google unit test API and runs google test scripts to test Nyxus" OFF)
+set(RUN_GTEST ON)
+
 #==== Pybind11
-find_package(Python COMPONENTS Interpreter Development)
 add_subdirectory(lib/pybind11)
-
-if (Python_FOUND OR Python_INCLUDE_DIRS)
-	add_compile_definitions(WITH_PYTHON_H)
-endif()
-
 
 include_directories(
 	lib/pybind11/include/
-	${Python_INCLUDE_DIRS}
 )
-
-message(STATUS "PYTHON HEADERS: ${Python_INCLUDE_DIRS}")
 
 find_package(OpenMP COMPONENTS C CXX)
 
@@ -94,6 +113,7 @@ set(SOURCE
 	src/nyx/common_stats.cpp
 	src/nyx/dirs_and_files.cpp
 	src/nyx/environment.cpp
+	src/nyx/environment_basic.cpp
 	src/nyx/feature_method.cpp
 	src/nyx/feature_mgr.cpp
 	src/nyx/feature_mgr_init.cpp
@@ -101,48 +121,112 @@ set(SOURCE
 	src/nyx/featureset.cpp
 	src/nyx/globals.cpp
 	src/nyx/image_loader.cpp
-	src/nyx/main.cpp
 	src/nyx/output_2_buffer.cpp
 	src/nyx/output_2_csv.cpp
 	src/nyx/parallel.cpp
 	src/nyx/phase1.cpp
 	src/nyx/phase2.cpp
 	src/nyx/phase3.cpp
+	src/nyx/pixel_feed.cpp
 	src/nyx/reduce_by_feature.cpp
 	src/nyx/reduce_trivial_rois.cpp
 	src/nyx/roi_cache.cpp
+	src/nyx/roi_cache_basic.cpp
 	src/nyx/scan_fastloader_way.cpp
 )
 
+if(USEGPU)
+	set(GPU_SOURCE_FILES
+		src/nyx/gpu/gpu_helpers.cu
+		src/nyx/gpu/image_moments.cu
+	)
+	add_library(nyxus_gpu ${GPU_SOURCE_FILES})
+	target_compile_options(nyxus_gpu PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:-fPIC>)
+endif()
+
+
 # CLI
 if(BUILD_CLI)
-	add_executable(nyxus ${SOURCE} src/nyx/main.cpp)
+	add_executable(nyxus ${SOURCE} src/nyx/main_nyxus.cpp)
+	add_executable(nyxushie src/nyx/dirs_and_files.cpp src/nyx/environment_basic.cpp src/nyx/image_loader1x.cpp src/nyx/main_nyxushie.cpp src/nyx/nested_roi.cpp src/nyx/python/nested_roi_py.cpp src/nyx/roi_cache_basic.cpp)
 endif()
 
 # Python bindings.
 pybind11_add_module(backend 
 	${SOURCE}
 	src/nyx/python/new_bindings_py.cpp
+	src/nyx/python/nested_roi_py.cpp
+	src/nyx/nested_roi.cpp
+	src/nyx/image_loader1x.cpp
 )
+
+if(USEGPU)
+	target_link_libraries(backend PRIVATE nyxus_gpu)
+       	set_target_properties(backend PROPERTIES CUDA_ARCHITECTURES "35;37;50;72")
+	if(BUILD_CLI)
+		target_link_libraries(nyxus PRIVATE nyxus_gpu)
+        	set_target_properties(nyxus PROPERTIES CUDA_ARCHITECTURES "35;37;50;72")
+	endif()
+endif()
+
+target_compile_definitions(backend PRIVATE WITH_PYTHON_H)
 
 # VERSION_INFO is defined by setup.py and passed into the C++ code as a define (VERSION_INFO) here.
 target_compile_definitions(backend PRIVATE VERSION_INFO=${VERSION_INFO})
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -fPIC")
+
 	target_link_libraries(backend PRIVATE stdc++fs)
+	target_link_libraries(backend PRIVATE -static-libgcc -static-libstdc++)
 	
 	if(BUILD_CLI)
+		target_link_libraries(nyxus PRIVATE -static-libgcc -static-libstdc++)
 		target_link_libraries(nyxus PRIVATE stdc++fs)
+		target_link_libraries(nyxushie PRIVATE -static-libgcc -static-libstdc++)
+		target_link_libraries(nyxushie PRIVATE stdc++fs)
 	endif()
 endif()
 
-target_link_libraries(backend PRIVATE -static-libgcc -static-libstdc++)
 target_link_libraries(backend PRIVATE ${Nyxus_LIBRARIES})
-target_link_libraries(backend PRIVATE ${Python_LIBRARIES})
+
+if (APPLE)
+	set_target_properties(backend PROPERTIES LINK_FLAGS "-undefined dynamic_lookup")
+endif()
+
 
 if(BUILD_CLI)
-	target_link_libraries(nyxus PRIVATE -static-libgcc -static-libstdc++)
 	target_link_libraries(nyxus PRIVATE ${Nyxus_LIBRARIES})
-	target_link_libraries(nyxus PRIVATE ${Python_LIBRARIES})
+	target_link_libraries(nyxushie PRIVATE ${Nyxus_LIBRARIES})
 endif()
+
+## Running Tests
+if (RUN_GTEST)
+	# Download and unpack googletest at configure time
+	configure_file(tests/CMakeLists.txt.gtest googletest-download/CMakeLists.txt)
+	execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download)
+	execute_process(COMMAND ${CMAKE_COMMAND} --build .
+			WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/googletest-download)
+
+	# Prevent GoogleTest from overriding our compiler/linker options
+	# when building with Visual Studio
+	set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+	# Add googletest directly to our build. This adds
+	# the following targets: gtest, gtest_main, gmock
+	# and gmock_main
+	add_subdirectory(${CMAKE_BINARY_DIR}/googletest-src
+			${CMAKE_BINARY_DIR}/googletest-build)
+
+	# The gtest/gmock targets carry header search path
+	# dependencies automatically when using CMake 2.8.11 or
+	# later. Otherwise we have to add them here ourselves.
+	if (CMAKE_VERSION VERSION_LESS 2.8.11)
+		include_directories("${gtest_SOURCE_DIR}/include")
+	endif ()
+	#	enable_testing()
+	add_subdirectory(tests)
+	message(STATUS "GTEST downloaded and imported")
+endif (RUN_GTEST)
 

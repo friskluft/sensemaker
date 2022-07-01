@@ -52,7 +52,8 @@ struct Pixel2 : public Point2i
 	Pixel2 (StatsInt x_, StatsInt y_, PixIntens i_) : Point2(x_, y_), inten(i_) {}
 	Pixel2 (int x_, int y_, PixIntens i_) : Point2(x_, y_), inten(i_) {}
 	Pixel2 (float x_, float y_, PixIntens i_) : Point2((StatsInt)x_, (StatsInt)y_), inten(i_) {}
-	Pixel2 (size_t x_, size_t y_, double i_) : Point2(x_, y_), inten(i_) {}
+	Pixel2 (size_t x_, size_t y_, double i_) : Point2((StatsInt)x_, (StatsInt)y_), inten((PixIntens)i_) {}
+	Pixel2 (size_t x_, size_t y_, PixIntens i_) : Point2((StatsInt)x_, (StatsInt)y_), inten(i_) {}
 
 	bool operator == (const Pixel2& p2)
 	{
@@ -167,6 +168,9 @@ struct Pixel2 : public Point2i
 		return { mind, maxd };
 	}
 
+	/// @brief Returns the minimum squared distance squared distance from <this> pixel to the <cloud>
+	/// @param cloud Non-empty vector of pixels
+	/// @return Minimum squared distance 
 	double min_sqdist (const std::vector<Pixel2>& cloud) const
 	{
 		auto mind = sqdist (cloud[0]);
@@ -179,7 +183,6 @@ struct Pixel2 : public Point2i
 		}
 		return mind;
 	}
-
 
 	double angle(const Pixel2& other) const
 	{

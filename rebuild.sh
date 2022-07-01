@@ -11,13 +11,14 @@ export CXX
 GXX=/usr/local/gcc94/bin/g++
 export GXX
 
+CUDA_INCLUDE="-I /usr/local/cuda-11.5/targets/x86_64-linux/include "
 INCLU="-I /home/ec2-user/libtiffinstall/include -I ${WORKDIR}/lib/fastloader -I ${WORKDIR}/lib/hedgehog -I ${WORKDIR}/lib/pybind11/include -I /usr/include/python3.7m -I /home/ec2-user/gcc_install/gcc-9.4.0/isl-0.18/interface "
 export INCLU
 
 BUILDDIR=./build-4-linux
 export BUILDDIR
 
-OPTS='-c -std=c++17 -O2 -D NO_CHECKTIMING '
+OPTS='-c -std=c++17 -O2 -D CHECKTIMING -D disableUSE_GPU '
 export OPTS
 
 #=== Prepare the build output directory
@@ -25,10 +26,39 @@ mkdir -p $BUILDDIR
 rm $BUILDDIR/*
 cd $BUILDDIR
 
+echo "\n\n>>>>>>>>>> building NyxusHie >>>>>>>>>>\n"
+
+$GXX $OPTS $INCLU ../src/nyx/dirs_and_files.cpp 
+$GXX $OPTS $INCLU ../src/nyx/environment_basic.cpp 
+$GXX $OPTS $INCLU ../src/nyx/image_loader1x.cpp 
+$GXX $OPTS $INCLU ../src/nyx/main_nyxushie.cpp 
+$GXX $OPTS $INCLU ../src/nyx/nested_roi.cpp 
+$GXX $OPTS $INCLU ../src/nyx/python/nested_roi_py.cpp 
+$GXX $OPTS $INCLU ../src/nyx/roi_cache_basic.cpp 
+
+$GXX \
+dirs_and_files.o \
+environment_basic.o \
+image_loader1x.o \
+main_nyxushie.o \
+nested_roi.o \
+nested_roi_py.o \
+roi_cache_basic.o \
+-lm -ltiff -lfftw3 \
+-lpthread \
+-static-libstdc++ \
+-L /usr/local/cuda-11.5/targets/x86_64-linux/lib -lcudart_static -ldl -lrt \
+-o nyxushie.exe
+
+echo ">>>>>>>>>> building Nyxus >>>>>>>>>>"
+
 #=== Touch main.cpp to advance the build timestamp
-touch ../src/nyx/main.cpp
+touch ../src/nyx/main_nyxus.cpp
 
 #=== We're in the 'build' directory so all the source files are in '../'
+# ---GPU---
+nvcc $OPTS $INCLU $CUDA_INCLUDE ../src/nyx/gpu/gpu_helpers.cu
+nvcc $OPTS $INCLU $CUDA_INCLUDE ../src/nyx/gpu/gpu_image_moments.cu
 # ---Features---
 $GXX $OPTS $INCLU ../src/nyx/features/basic_morphology.cpp
 $GXX $OPTS $INCLU ../src/nyx/features/caliper_feret.cpp
@@ -81,6 +111,7 @@ $GXX $OPTS $INCLU ../src/nyx/helpers/timing.cpp
 $GXX $OPTS $INCLU ../src/nyx/common_stats.cpp
 $GXX $OPTS $INCLU ../src/nyx/dirs_and_files.cpp
 $GXX $OPTS $INCLU ../src/nyx/environment.cpp
+$GXX $OPTS $INCLU ../src/nyx/environment_basic.cpp
 $GXX $OPTS $INCLU ../src/nyx/feature_method.cpp
 $GXX $OPTS $INCLU ../src/nyx/feature_mgr.cpp
 $GXX $OPTS $INCLU ../src/nyx/feature_mgr_init.cpp
@@ -88,7 +119,7 @@ $GXX $OPTS $INCLU ../src/nyx/features_calc_workflow.cpp
 $GXX $OPTS $INCLU ../src/nyx/featureset.cpp
 $GXX $OPTS $INCLU ../src/nyx/globals.cpp
 $GXX $OPTS $INCLU ../src/nyx/image_loader.cpp
-$GXX $OPTS $INCLU ../src/nyx/main.cpp
+$GXX $OPTS $INCLU $CUDA_INCLUDE ../src/nyx/main_nyxus.cpp
 $GXX $OPTS $INCLU ../src/nyx/output_2_buffer.cpp
 $GXX $OPTS $INCLU ../src/nyx/output_2_csv.cpp
 $GXX $OPTS $INCLU ../src/nyx/parallel.cpp
@@ -98,9 +129,12 @@ $GXX $OPTS $INCLU ../src/nyx/phase3.cpp
 $GXX $OPTS $INCLU ../src/nyx/reduce_by_feature.cpp
 $GXX $OPTS $INCLU ../src/nyx/reduce_trivial_rois.cpp
 $GXX $OPTS $INCLU ../src/nyx/roi_cache.cpp
+$GXX $OPTS $INCLU ../src/nyx/roi_cache_basic.cpp
 $GXX $OPTS $INCLU ../src/nyx/scan_fastloader_way.cpp
 
 $GXX \
+gpu_image_moments.o \
+gpu_helpers.o \
 basic_morphology.o \
 caliper_feret.o \
 caliper_martin.o \
@@ -144,6 +178,7 @@ timing.o \
 common_stats.o \
 dirs_and_files.o \
 environment.o \
+environment_basic.o \
 feature_method.o \
 feature_mgr.o \
 feature_mgr_init.o \
@@ -151,7 +186,7 @@ features_calc_workflow.o \
 featureset.o \
 globals.o \
 image_loader.o \
-main.o \
+main_nyxus.o \
 output_2_buffer.o \
 output_2_csv.o \
 parallel.o \
@@ -161,13 +196,16 @@ phase3.o \
 reduce_by_feature.o \
 reduce_trivial_rois.o \
 roi_cache.o \
+roi_cache_basic.o \
 scan_fastloader_way.o \
 -lm -ltiff -lfftw3 \
 -lpthread \
 -static-libstdc++ \
+-L /usr/local/cuda-11.5/targets/x86_64-linux/lib -lcudart_static -ldl -lrt \
+-lcudadevrt -lcudart_static -lrt -lpthread -ldl \
 -o nyxus.exe
 
 cd .. # Leave BUILDDIR
 
-ls -la $BUILDDIR | grep nyxus.exe 
+ls -la $BUILDDIR | grep nyxus
 

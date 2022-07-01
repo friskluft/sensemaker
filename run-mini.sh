@@ -9,7 +9,7 @@ rm -r /home/ec2-user/work/data/OUTPUT-mini
 mkdir -p /home/ec2-user/work/data/OUTPUT-mini
 
 #--- Run ValGrind--- valgrind --tool=callgrind --main-stacksize=1000000 ./nyxus.exe --features=*all* --intDir=/home/ec2-user/work/data/mini/int --segDir=/home/ec2-user/work/data/mini/seg --outDir=/home/ec2-user/work/data/OUTPUT-mini --filePattern=.* --csvFile=separatecsv --loaderThreads=1 --reduceThreads=1 
-./nyxus.exe --features=*all* --intDir=/home/ec2-user/work/data/mini/int --segDir=/home/ec2-user/work/data/mini/seg --outDir=/home/ec2-user/work/data/OUTPUT-mini --filePattern=.* --csvFile=separatecsv --loaderThreads=1 --reduceThreads=1 
+./nyxus.exe --verbosity=3 --features=*all* --intDir=/home/ec2-user/work/data/mini/int --segDir=/home/ec2-user/work/data/mini/seg --outDir=/home/ec2-user/work/data/OUTPUT-mini --filePattern=.* --csvFile=separatecsv --loaderThreads=1 --reduceThreads=1 
 
 
 cd ..

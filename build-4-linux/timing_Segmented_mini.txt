@@ -1,0 +1,1 @@
+Experiment: Segmented_mini Elapsed Time: 6 seconds

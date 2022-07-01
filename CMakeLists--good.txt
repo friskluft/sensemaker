@@ -1,0 +1,91 @@
+cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
+message(STATUS ">>>> CMake version: ${CMAKE_VERSION}")
+
+project(AxleNyxus)
+
+option(USEGPU "Use GPU" ON)
+
+message(STATUS ">>>> USEGPU= ${USEGPU}")
+if(USEGPU)
+    set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+    set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${CMAKE_CXX_COMPILER})
+
+    add_definitions(-DUSE_GPU)
+    add_definitions(-DCHECKTIMING)
+endif()
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CUDA_STANDARD 17)
+set(CMAKE_CUDA_STANDARD_REQUIRED True)
+
+#--- External libraries
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake-modules")
+
+file(GLOB cpu_source_files "${CMAKE_SOURCE_DIR}/src/nyx/*.cpp" "${CMAKE_SOURCE_DIR}/src/nyx/features/*.cpp" "${CMAKE_SOURCE_DIR}/src/nyx/helpers/*.cpp")
+file(GLOB gpu_source_files "${CMAKE_SOURCE_DIR}/src/nyx/gpu/*.cu")
+list(REMOVE_ITEM cpu_source_files "${CMAKE_SOURCE_DIR}/src/nyx/main_nyxushie.cpp" "${CMAKE_SOURCE_DIR}/src/nyx/python/new_bindings_py.cpp")
+
+
+#==== Include directories. Note: libtiff (required by FastLoader) is 
+#	the only dependency needing manual preparation - unzip, cmake-install 
+#	it, and put its headers in lib/libtiff/include, and 
+#	its library - in lib/libtiff/lib
+find_package(FastLoader)
+if(FastLoader_FOUND)
+	list(APPEND Nyxus_LIBRARIES ${FastLoader_LIBRARIES})
+	SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${FastLoader_CXX_FLAGS}")
+	include_directories(${FastLoader_INCLUDE_DIR})
+else()
+	message(FATAL_ERROR "Unable to find FastLoader which is required for Nyxus.")
+endif()
+
+if( ("${CMAKE_VERSION}" VERSION_EQUAL 3.8) OR ("${CMAKE_VERSION}" VERSION_GREATER 3.8) )
+    # Modern CMake
+    message(STATUS "---Modern Cmake---")
+    if(USEGPU)
+	    message(STATUS ">>>> 1")
+        enable_language("CUDA")
+        set(CMAKE_CUDA_HOST_COMPILER ${CMAKE_CXX_COMPILER})
+        set(CMAKE_CUDA_HOST_LINK_LAUNCHER ${CMAKE_CXX_COMPILER})
+        add_executable(diana ${cpu_source_files})
+        set_target_properties(diana PROPERTIES CUDA_ARCHITECTURES "35;37;50;72")
+
+	target_link_libraries(diana ${Nyxus_LIBRARIES} -static-libgcc -static-libstdc++)
+
+	add_library(particles ${gpu_source_files})
+	target_link_libraries(diana particles)
+
+get_target_property(tll diana LINK_LIBRARIES)
+message(STATUS ">>>> LINK_LIBRARIES=" ${tll})
+
+message (STATUS ">>>> Nyxus_LIBRARIES=" ${Nyxus_LIBRARIES})
+
+message (STATUS ">>> CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES=" ${CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES})
+message (STATUS ">>> CMAKE_C_IMPLICIT_LINK_DIRECTORIES=" ${CMAKE_C_IMPLICIT_LINK_DIRECTORIES})
+message (STATUS ">>> LINK_DIRECTORIES=" ${LINK_DIRECTORIES})
+message (STATUS ">>> CMAKE_CUDA_HOST_LINK_LAUNCHER=" ${CMAKE_CUDA_HOST_LINK_LAUNCHER})
+
+    else(USEGPU)
+	message(STATUS ">>> 2")
+        add_executable(diana ${cpu_source_files})
+	target_link_libraries(${PROJECT_NAME} stdc++fs)
+	### target_link_libraries(diana ${Nyxus_LIBRARIES})
+	target_link_libraries(${PROJECT_NAME} ${Nyxus_LIBRARIES})
+    endif()
+else()
+    # Old CMake
+    message(STATUS ">>>> Old Cmake")
+    add_executable(diana ${cpu_source_files})
+    if(USEGPU)
+        find_package(CUDA 8.0)
+        if(NOT CUDA_FOUND)
+            message(STATUS "CUDA not found")
+            set(USEGPU OFF)
+        else()
+            CUDA_ADD_LIBRARY(diana_gpu ${gpu_source_files})
+            target_link_libraries(diana diana_gpu)
+        endif()
+    endif()
+endif()
+

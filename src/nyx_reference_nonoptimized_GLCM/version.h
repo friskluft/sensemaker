@@ -1,0 +1,7 @@
+#ifndef VERSIONH_INCLUDED
+#define VERSIONH_INCLUDED
+
+#define PROJECT_NAME "Nyxus"
+#define PROJECT_VER "0.1.1"
+
+#endif // VERSIONH_INCLUDED

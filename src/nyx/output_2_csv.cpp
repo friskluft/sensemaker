@@ -21,19 +21,27 @@ namespace Nyxus
 #define fopen_s(pFile,filename,mode) ((*(pFile))=fopen((filename),(mode)))==NULL
 #endif
 
-	void print_label_stats()
+	double auto_precision (std::stringstream& ss, double x)
 	{
-		std::cout << "\tFeatures by label. Number of processed labels " << uniqueLabels.size() << std::endl;
+		if (std::abs(x) >= 1.0)
+			ss << std::setprecision(theEnvironment.get_floating_point_precision());
+		else
+			if (x == 0.0)
+				ss << std::setprecision(1);
+			else
+			{
+				// int n = int(std::abs(std::log10(x)) + 0.5);
 
-		// Print stats by label
-		/*
-		print_by_label("Min", min);
-		print_by_label("Max", max);
-		print_by_label("Mean", mean);
-		print_by_label("Median", median);
-		print_by_label("Energy", massEnergy);
-		print_by_label("Variance", variance);
-		*/
+				double tmp1 = std::abs(x),
+					tmp2 = std::log10(tmp1),
+					tmp3 = std::abs(tmp2), 
+					tmp4 = tmp3 + 0.5;
+				int n = int(tmp4);
+
+				ss << std::setprecision(theEnvironment.get_floating_point_precision() + n);
+			}
+
+		return x;
 	}
 
 	// Saves the result of image scanning and feature calculation. Must be called after the reduction phase.
@@ -200,7 +208,7 @@ namespace Nyxus
 				if (fc == ZERNIKE2D)
 				{
 					// Populate with indices
-					for (int i = 0; i < ZernikeFeature::num_feature_values_calculated; i++)
+					for (int i = 0; i < ZernikeFeature::num_feature_values_calculated; i++)	// i < ZernikeFeature::num_feature_values_calculated
 						ssHead << "," << fn << "_Z" << i;						
 
 					// Proceed with other features
@@ -223,6 +231,9 @@ namespace Nyxus
 		{
 			std::stringstream ssVals;
 
+			// Floating point precision
+			ssVals << std::fixed;
+
 			LR& r = roiData[l];
 
 			// Tear off pure file names from segment and intensity file paths
@@ -233,7 +244,7 @@ namespace Nyxus
 			{
 				auto fc = std::get<1>(enabdF);
 				auto fn = std::get<0>(enabdF);	// debug
-				auto vv = r.getFeatureValues(fc);
+				auto vv = r.get_fvals(fc);
 
 				// Parameterized feature
 				// --Texture family
@@ -256,8 +267,12 @@ namespace Nyxus
 					// Polulate with angles
 					for (int i = 0; i < theEnvironment.rotAngles.size(); i++)
 					{
-						ssVals << "," << vv[i];
-						//--diagnoze misalignment-- ssVals << "," << fn << "-" << vv[i];	
+						#ifndef DIAGNOSE_NYXUS_OUTPUT
+							ssVals << "," << vv[i];
+						#else
+							//--diagnoze misalignment-- 
+							ssVals << "," << fn << "-" << vv[i];	
+						#endif
 					}
 					// Proceed with other features
 					continue;
@@ -287,8 +302,12 @@ namespace Nyxus
 					auto nAng = 4; // sizeof(GLRLMFeature::rotAngles) / sizeof(GLRLMFeature::rotAngles[0]);
 					for (int i = 0; i < nAng; i++)
 					{
-						ssVals << "," << vv[i];
-						//--diagnoze misalignment-- ssVals << "," << fn << "-" << vv[i];	
+						#ifndef DIAGNOSE_NYXUS_OUTPUT
+							ssVals << "," << vv[i];
+						#else
+							//--diagnoze misalignment-- 
+							ssVals << "," << fn << "-" << vv[i];	
+						#endif
 					}
 					// Proceed with other features
 					continue;
@@ -299,8 +318,12 @@ namespace Nyxus
 				{
 					for (auto i = 0; i < GaborFeature::num_features; i++)
 					{
-						ssVals << "," << vv[i];
-						//--diagnoze misalignment-- ssVals << "," << fn << "-" << vv[i];	
+						#ifndef DIAGNOSE_NYXUS_OUTPUT
+							ssVals << "," << vv[i];
+						#else	
+							//--diagnoze misalignment-- 
+							ssVals << "," << fn << "-" << vv[i];	
+						#endif			
 					}
 
 					// Proceed with other features
@@ -310,8 +333,15 @@ namespace Nyxus
 				// --Zernike feature values
 				if (fc == ZERNIKE2D)
 				{
-					for (int i=0; i <ZernikeFeature::num_feature_values_calculated; i++)
-						ssVals << "," << vv[i]; 
+					for (int i = 0; i < ZernikeFeature::num_feature_values_calculated; i++)
+					{
+						#ifndef DIAGNOSE_NYXUS_OUTPUT
+							ssVals << "," << vv[i];
+						#else
+							//--diagnoze misalignment-- 
+							ssVals << "," << fn << "-" << vv[i];	
+						#endif
+					}
 
 					// Proceed with other features
 					continue;
@@ -322,8 +352,12 @@ namespace Nyxus
 				{
 					for (auto i = 0; i < RadialDistributionFeature::num_features_FracAtD; i++)
 					{
-						ssVals << "," << vv[i];
-						//--diagnoze misalignment-- ssVals << "," << fn << "-" << vv[i];	
+						#ifndef DIAGNOSE_NYXUS_OUTPUT
+							ssVals << "," << vv[i];
+						#else
+							//--diagnoze misalignment-- 
+							ssVals << "," << fn << "-" << vv[i];	
+						#endif
 					}
 					// Proceed with other features
 					continue;
@@ -332,8 +366,12 @@ namespace Nyxus
 				{
 					for (auto i = 0; i < RadialDistributionFeature::num_features_MeanFrac; i++)
 					{
-						ssVals << "," << vv[i];
-						//--diagnoze misalignment-- ssVals << "," << fn << "-" << vv[i];	
+						#ifndef DIAGNOSE_NYXUS_OUTPUT
+							ssVals << "," << vv[i];
+						#else
+							//--diagnoze misalignment-- 
+							ssVals << "," << fn << "-" << vv[i];	
+						#endif
 					}
 					// Proceed with other features
 					continue;
@@ -342,16 +380,24 @@ namespace Nyxus
 				{
 					for (auto i = 0; i < RadialDistributionFeature::num_features_RadialCV; i++)
 					{
-						ssVals << "," << vv[i];
-						//--diagnoze misalignment-- ssVals << "," << fn << "-" << vv[i];	
+						#ifndef DIAGNOSE_NYXUS_OUTPUT
+							ssVals << "," << vv[i];
+						#else
+							//--diagnoze misalignment-- 
+							ssVals << "," << fn << "-" << vv[i];	
+						#endif
 					}
 					// Proceed with other features
 					continue;
 				}
 
 				// Regular feature
-				ssVals << "," << vv[0];
-				//--diagnoze misalignment-- ssVals << "," << fn << "-" << vv[0];	
+				#ifndef DIAGNOSE_NYXUS_OUTPUT
+					ssVals << "," << auto_precision (ssVals, vv[0]);
+				#else
+					//--diagnoze misalignment-- 
+					ssVals << "," << fn << "-" << vv[0];	
+				#endif
 			}
 
 			fprintf(fp, "%s\n", ssVals.str().c_str());

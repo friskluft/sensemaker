@@ -11,7 +11,7 @@ mkdir -p /home/ec2-user/work/data/OUTPUT-tissuenet
 date
 start=$(date +%s)
 
-./nyxus.exe --intDir=/home/ec2-user/work/data/tissuenet/intensity --segDir=/home/ec2-user/work/data/tissuenet/labels --outDir=/home/ec2-user/work/data/OUTPUT-tissuenet --filePattern=.* --csvFile=separatecsv --loaderThreads=1 --reduceThreads=8 --features=*ALL_MORPHOLOGY*
+./nyxus.exe --verbosity=0 --intDir=/home/ec2-user/work/data/tissuenet/intensity --segDir=/home/ec2-user/work/data/tissuenet/labels --outDir=/home/ec2-user/work/data/OUTPUT-tissuenet-nyxaswc --filePattern=.* --csvFile=separatecsv --loaderThreads=1 --reduceThreads=8 --features=*ALL_MORPHOLOGY*
 
 
 end=$(date +%s)

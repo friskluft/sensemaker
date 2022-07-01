@@ -11,7 +11,7 @@ mkdir -p /home/ec2-user/work/data/OUTPUT-tissuenet
 date
 start=$(date +%s)
 
-./nyxus.exe --verbosity=12 --features=*all* --intDir=/home/ec2-user/work/data/tissuenet/intensity --segDir=/home/ec2-user/work/data/tissuenet/labels --outDir=/home/ec2-user/work/data/OUTPUT-tissuenet --filePattern=.* --csvFile=separatecsv --loaderThreads=1 --reduceThreads=8 
+./nyxus.exe --verbosity=3 --features=MIN --intDir=/home/ec2-user/work/data/tissuenet/intensity --segDir=/home/ec2-user/work/data/tissuenet/labels --outDir=/home/ec2-user/work/data/OUTPUT-tissuenet --filePattern=.* --csvFile=separatecsv --loaderThreads=1 --reduceThreads=8 
 
 end=$(date +%s)
 echo "Elapsed Time: $(($end-$start)) seconds"

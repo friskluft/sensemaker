@@ -23,7 +23,6 @@ namespace Nyxus
 	{
 
 		//==== Reduce pixel intensity #1, including MIN and MAX
-		//XXX--not using online approach any more--		lr.reduce_pixel_intensity_features();
 		// --MIN, MAX
 		lr.fvals[MIN][0] = lr.aux_min;
 		lr.fvals[MAX][0] = lr.aux_max;
@@ -89,15 +88,7 @@ namespace Nyxus
 		if (lr.has_bad_data())
 			return;
 
-		// P10, 25, 75, 90, IQR, RMAD, entropy, uniformity
-		#if 0	// Replaced with a faster version (class TrivialHistogram) 
-		auto ptrH = lr.aux_Histogram;
-		ptrH->build_histogram();
-		auto [mean_, mode_, p10_, p25_, p75_, p90_, iqr_, rmad_, entropy_, uniformity_] = ptrH->get_stats();
-		ptrH->reset();
-		#endif
-
-		// Faster version
+		// Percentiles, median, mode, entropy, uniformity, etc.
 		TrivialHistogram H;
 		H.initialize(lr.fvals[MIN][0], lr.fvals[MAX][0], lr.raw_pixels);
 		auto [median_, mode_, p01_, p10_, p25_, p75_, p90_, p99_, iqr_, rmad_, entropy_, uniformity_] = H.get_stats();

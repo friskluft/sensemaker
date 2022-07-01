@@ -16,7 +16,8 @@ class Moments2func {
 	Moments2& moments;
 public:
 	Moments2func(Moments2& in_moments) : moments(in_moments) { in_moments.reset(); }
-	const double operator()(const double& x) const {
+	double operator()(const double& x) const 
+	{
 		return (moments.add(x));
 	}
 };
@@ -186,7 +187,9 @@ class ImageMatrix
 public:
 	ImageMatrix(): _pix_plane(0,0) {}
 
-	ImageMatrix(const ImageMatrix & I): _pix_plane(0,0) 
+	ImageMatrix(const ImageMatrix & I, const AABB& aabb): 
+		original_aabb(aabb),
+		_pix_plane(0,0)
 	{
 		this->allocate(I.width, I.height);
 		this->_pix_plane = I._pix_plane;
@@ -314,7 +317,6 @@ public:
 	// min, max, mean, std computed in single pass, median in separate pass
 	Moments2 stats;
 
-
 	StatsInt height = 0, width = 0;
 	AABB original_aabb;
 	
@@ -324,6 +326,7 @@ public:
 	// hilight_x|y = -1 means no gilight
 	using PrintablePoint = std::tuple<int, int, std::string>;
 	void print(const std::string& head = "", const std::string& tail = "", std::vector<PrintablePoint> special_points = {});
+	void print(std::ofstream& f, const std::string& head = "", const std::string& tail = "", std::vector<PrintablePoint> special_points = {});
 };
 
 /// @brief Padded image matrix
