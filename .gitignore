@@ -1,5 +1,6 @@
 # Build directories
 BUILD1/*
+sensemaker-001-VisualStudio/x64/*
 
 # Prerequisites
 *.d

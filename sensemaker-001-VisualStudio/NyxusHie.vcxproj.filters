@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\src\nyx\main_nyxushie.cpp" />
+    <ClCompile Include="..\src\nyx\nested_roi.cpp" />
+    <ClCompile Include="..\src\nyx\python\nested_roi_py.cpp" />
+    <ClCompile Include="..\src\nyx\dirs_and_files.cpp" />
+    <ClCompile Include="..\src\nyx\roi_cache_basic.cpp" />
+    <ClCompile Include="..\src\nyx\environment_basic.cpp" />
+    <ClCompile Include="..\src\nyx\image_loader1x.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="headers">
+      <UniqueIdentifier>{c76f9893-c19d-4362-bbd5-85430a3728f6}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

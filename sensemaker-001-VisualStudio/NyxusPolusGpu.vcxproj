@@ -1,0 +1,265 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A082D710-6676-4CFA-8584-22486F4EAB67}</ProjectGuid>
+    <RootNamespace>NyxusPolusGpu</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>NyxusPolusGpu004</ProjectName>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>MultiByte</CharacterSet>
+    <PlatformToolset>v142</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.6.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>disableUSE_GPU;CHECKTIMING;disabNYX_CHECK_BUFFER_BOUNDS;_CRT_SECURE_NO_WARNINGS;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>c:\work\axle\nyxus_polus\lib\pugixml;C:\WORK\AXLE\nyxus_polus\build2\local_install\include;C:\ProgramData\Anaconda3\include;C:\WORK\AXLE\nyxus_polus\lib\pybind11\include;C:\WORK\AXLE\Hedgehog2022;C:\WORK\AXLE\FastLoader2022;..\BUILD1\tiff-4.4.0\libtiff\;..\BUILD1\tiff-4.4.0\build_man\libtiff\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <UndefinePreprocessorDefinitions>
+      </UndefinePreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <AdditionalOptions>/bigobj %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>tiff.lib;cudart_static.lib;cufft.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\BUILD1\local_install\lib;C:\ProgramData\Anaconda3\libs;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64</AdditionalLibraryDirectories>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>USE_GPU;CHECKTIMING;disabNYX_CHECK_BUFFER_BOUNDS;WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>c:\work\axle\nyxus_polus\lib\pugixml;C:\WORK\AXLE\nyxus_polus\build2\local_install\include;C:\ProgramData\Anaconda3\include;C:\WORK\AXLE\nyxus_polus\lib\pybind11\include;C:\WORK\AXLE\tiff-4.3.0_2022\libtiff;C:\WORK\AXLE\tiff-4.3.0_2022\build2022\libtiff;C:\WORK\AXLE\tiff-4.3.0_2022\build2022\libtiff\RelWithDebInfo;C:\WORK\AXLE\Hedgehog2022;C:\WORK\AXLE\FastLoader2022;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <SubSystem>Console</SubSystem>
+      <AdditionalDependencies>C:/WORK/AXLE/tiff-4.3.0_2022/build2022/libtiff/RelWithDebInfo/tiff.lib;cudart_static.lib;cufft.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>C:\WORK\AXLE\tiff-4.3.0_2022\build2022\libtiff\RelWithDebInfo;C:\ProgramData\Anaconda3\libs;C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v11.6\lib\x64;%(AdditionalLibraryDirectories);$(CudaToolkitLibDir)</AdditionalLibraryDirectories>
+      <Profile>true</Profile>
+    </Link>
+    <CudaCompile>
+      <TargetMachinePlatform>64</TargetMachinePlatform>
+    </CudaCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\nyxus-004\lib\pugixml\pugixml..cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\nyx\common_stats.cpp" />
+    <ClCompile Include="..\src\nyx\dirs_and_files.cpp" />
+    <ClCompile Include="..\src\nyx\environment.cpp" />
+    <ClCompile Include="..\src\nyx\environment_basic.cpp" />
+    <ClCompile Include="..\src\nyx\featureset.cpp" />
+    <ClCompile Include="..\src\nyx\features\basic_morphology.cpp" />
+    <ClCompile Include="..\src\nyx\features\caliper_feret.cpp" />
+    <ClCompile Include="..\src\nyx\features\caliper_martin.cpp" />
+    <ClCompile Include="..\src\nyx\features\caliper_nassenstein.cpp" />
+    <ClCompile Include="..\src\nyx\features\chords.cpp" />
+    <ClCompile Include="..\src\nyx\features\chords_nontriv.cpp" />
+    <ClCompile Include="..\src\nyx\features\circle.cpp" />
+    <ClCompile Include="..\src\nyx\features\contour.cpp" />
+    <ClCompile Include="..\src\nyx\features\convex_hull_nontriv.cpp" />
+    <ClCompile Include="..\src\nyx\features\ellipse_fitting.cpp" />
+    <ClCompile Include="..\src\nyx\features\erosion_pixels.cpp" />
+    <ClCompile Include="..\src\nyx\features\euler_number.cpp" />
+    <ClCompile Include="..\src\nyx\features\extrema.cpp" />
+    <ClCompile Include="..\src\nyx\features\fractal_dim.cpp" />
+    <ClCompile Include="..\src\nyx\features\gabor.cpp" />
+    <ClCompile Include="..\src\nyx\features\gabor_nontriv.cpp" />
+    <ClCompile Include="..\src\nyx\features\geo_len_thickness.cpp" />
+    <ClCompile Include="..\src\nyx\features\glcm.cpp" />
+    <ClCompile Include="..\src\nyx\features\glcm_nontriv.cpp" />
+    <ClCompile Include="..\src\nyx\features\gldm.cpp" />
+    <ClCompile Include="..\src\nyx\features\glrlm.cpp" />
+    <ClCompile Include="..\src\nyx\features\glszm.cpp" />
+    <ClCompile Include="..\src\nyx\features\hexagonality_polygonality.cpp" />
+    <ClCompile Include="..\src\nyx\features\image_matrix.cpp" />
+    <ClCompile Include="..\src\nyx\features\image_matrix_nontriv.cpp" />
+    <ClCompile Include="..\src\nyx\features\image_moments.cpp" />
+    <ClCompile Include="..\src\nyx\features\image_moments_nontriv.cpp" />
+    <ClCompile Include="..\src\nyx\features\intensity.cpp" />
+    <ClCompile Include="..\src\nyx\features\neighbors.cpp" />
+    <ClCompile Include="..\src\nyx\features\ngtdm.cpp" />
+    <ClCompile Include="..\src\nyx\features\pixel.cpp" />
+    <ClCompile Include="..\src\nyx\features\radial_distribution.cpp" />
+    <ClCompile Include="..\src\nyx\features\roi_label.cpp" />
+    <ClCompile Include="..\src\nyx\features\roi_radius.cpp" />
+    <ClCompile Include="..\src\nyx\features\rotation.cpp" />
+    <ClCompile Include="..\src\nyx\features\specfunc.cpp" />
+    <ClCompile Include="..\src\nyx\features\zernike.cpp" />
+    <ClCompile Include="..\src\nyx\features\zernike_nontriv.cpp" />
+    <ClCompile Include="..\src\nyx\features_calc_workflow.cpp" />
+    <ClCompile Include="..\src\nyx\feature_method.cpp" />
+    <ClCompile Include="..\src\nyx\feature_mgr.cpp" />
+    <ClCompile Include="..\src\nyx\feature_mgr_init.cpp" />
+    <ClCompile Include="..\src\nyx\globals.cpp" />
+    <ClCompile Include="..\src\nyx\helpers\timing.cpp" />
+    <ClCompile Include="..\src\nyx\image_loader.cpp" />
+    <ClCompile Include="..\src\nyx\image_loader1x.cpp" />
+    <ClCompile Include="..\src\nyx\main_nyxus.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\nyx\output_2_buffer.cpp" />
+    <ClCompile Include="..\src\nyx\output_2_csv.cpp" />
+    <ClCompile Include="..\src\nyx\parallel.cpp" />
+    <ClCompile Include="..\src\nyx\phase1.cpp" />
+    <ClCompile Include="..\src\nyx\phase2.cpp" />
+    <ClCompile Include="..\src\nyx\phase3.cpp" />
+    <ClCompile Include="..\src\nyx\pixel_feed.cpp" />
+    <ClCompile Include="..\src\nyx\python\bindings_py.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\nyx\python\nested_roi_py.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\nyx\python\new_bindings_py.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\src\nyx\reduce_by_feature.cpp" />
+    <ClCompile Include="..\src\nyx\reduce_trivial_rois.cpp" />
+    <ClCompile Include="..\src\nyx\roi_cache.cpp" />
+    <ClCompile Include="..\src\nyx\roi_cache_basic.cpp" />
+    <ClCompile Include="..\src\nyx\scan_fastloader_way.cpp" />
+    <ClInclude Include="..\nyxus-diagnostics\simpleMatrix-diagnostics.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\nyxus-004\lib\pugixml\pugiconfig.hpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\nyxus-004\lib\pugixml\pugixml.hpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClInclude>
+    <ClInclude Include="..\src\nyx\environment.h" />
+    <ClInclude Include="..\src\nyx\featureset.h" />
+    <ClInclude Include="..\src\nyx\features\aabb.h" />
+    <ClInclude Include="..\src\nyx\features\basic_morphology.h" />
+    <ClInclude Include="..\src\nyx\features\caliper.h" />
+    <ClInclude Include="..\src\nyx\features\chords.h" />
+    <ClInclude Include="..\src\nyx\features\circle.h" />
+    <ClInclude Include="..\src\nyx\features\contour.h" />
+    <ClInclude Include="..\src\nyx\features\convex_hull.h" />
+    <ClInclude Include="..\src\nyx\features\ellipse_fitting.h" />
+    <ClInclude Include="..\src\nyx\features\erosion.h" />
+    <ClInclude Include="..\src\nyx\features\euler_number.h" />
+    <ClInclude Include="..\src\nyx\features\extrema.h" />
+    <ClInclude Include="..\src\nyx\features\fractal_dim.h" />
+    <ClInclude Include="..\src\nyx\features\gabor.h" />
+    <ClInclude Include="..\src\nyx\features\geodetic_len_thickness.h" />
+    <ClInclude Include="..\src\nyx\features\glcm.h" />
+    <ClInclude Include="..\src\nyx\features\gldm.h" />
+    <ClInclude Include="..\src\nyx\features\glrlm.h" />
+    <ClInclude Include="..\src\nyx\features\glszm.h" />
+    <ClInclude Include="..\src\nyx\features\hexagonality_polygonality.h" />
+    <ClInclude Include="..\src\nyx\features\histogram.h" />
+    <ClInclude Include="..\src\nyx\features\image_matrix.h" />
+    <ClInclude Include="..\src\nyx\features\image_matrix_nontriv.h" />
+    <ClInclude Include="..\src\nyx\features\image_moments.h" />
+    <ClInclude Include="..\src\nyx\features\intensity.h" />
+    <ClInclude Include="..\src\nyx\features\moments.h" />
+    <ClInclude Include="..\src\nyx\features\neighbors.h" />
+    <ClInclude Include="..\src\nyx\features\ngtdm.h" />
+    <ClInclude Include="..\src\nyx\features\pixel.h" />
+    <ClInclude Include="..\src\nyx\features\radial_distribution.h" />
+    <ClInclude Include="..\src\nyx\features\roi_radius.h" />
+    <ClInclude Include="..\src\nyx\features\rotation.h" />
+    <ClInclude Include="..\src\nyx\features\specfunc.h" />
+    <ClInclude Include="..\src\nyx\features\zernike.h" />
+    <ClInclude Include="..\src\nyx\feature_method.h" />
+    <ClInclude Include="..\src\nyx\feature_mgr.h" />
+    <ClInclude Include="..\src\nyx\globals.h" />
+    <ClInclude Include="..\src\nyx\gpu\gpu.h" />
+    <ClInclude Include="..\src\nyx\gpu\helper_cuda.h" />
+    <ClInclude Include="..\src\nyx\gpu\helper_string.h" />
+    <ClInclude Include="..\src\nyx\grayscale_tiff.h" />
+    <ClInclude Include="..\src\nyx\helpers\helpers.h" />
+    <ClInclude Include="..\src\nyx\helpers\system_resource.h" />
+    <ClInclude Include="..\src\nyx\helpers\timing.h" />
+    <ClInclude Include="..\src\nyx\image_loader.h" />
+    <ClInclude Include="..\src\nyx\image_loader1x.h" />
+    <ClInclude Include="..\src\nyx\omezarr.h" />
+    <ClInclude Include="..\src\nyx\parallel.h" />
+    <ClInclude Include="..\src\nyx\roi_cache.h" />
+    <ClInclude Include="..\src\nyx\version.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="..\src\nyx\gpu\gabor.cu" />
+    <CudaCompile Include="..\src\nyx\gpu\gpu_helpers.cu">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+    </CudaCompile>
+    <CudaCompile Include="..\src\nyx\gpu\image_moments.cu" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\nyx\python\nyxus\functions.py">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\nyx\python\nyxus\interface.py">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\nyx\python\nyxus\nyxus.py">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\nyx\python\nyxus\_version.py">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+    <None Include="..\src\nyx\python\nyxus\__init__.py">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\visual_studio_nyxus_command_lines.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+    <Import Project="$(VCTargetsPath)\BuildCustomizations\CUDA 11.6.targets" />
+  </ImportGroup>
+</Project>
