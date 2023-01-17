@@ -256,7 +256,7 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Text Include="..\visual_studio_nyxus_command_lines.txt" />
+    <Text Include="..\..\visual_studio_nyxus_command_lines.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
