@@ -112,18 +112,11 @@ void CaliperMartinFeature::calculate_diameters (const std::vector<Pixel2>& conve
 	}
 }
 
-void CaliperMartinFeature::osized_calculate(LR& r, ImageLoader&)
+void CaliperMartinFeature::osized_calculate (LR& r, ImageLoader&)
 {
-	std::vector<double> allD;	// diameters at 0-180 degrees rotation
-	calculate_diameters(r.convHull_CH, allD);
-
-	auto s = ComputeCommonStatistics2(allD);
-	_min = (double)s.min;
-	_max = (double)s.max;
-	_mean = s.mean;
-	_median = s.median;
-	_stdev = s.stdev;
-	_mode = (double)s.mode;
+	// Calculating this feature does not require access to the massive ROI pixel cloud, 
+	// so we can reuse the trivial calculate()
+	calculate(r);
 }
 
 void CaliperMartinFeature::parallel_process(std::vector<int>& roi_labels, std::unordered_map <int, LR>& roiData, int n_threads)

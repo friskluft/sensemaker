@@ -67,7 +67,7 @@ public:
 
 private:	
 	// Implements feature calculation for a trivial ROI, saves result in instance cache
-	void calculate_imp (const std::vector<Pixel2>& cnovhull, std::vector<double>& D);
+	void calculate_diameters (const std::vector<Pixel2>& cnovhull, std::vector<double>& D);
 
 	// Results instance cache
 	double 

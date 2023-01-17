@@ -17,16 +17,14 @@ CaliperFeretFeature::CaliperFeretFeature() : FeatureMethod("CaliperFeretFeature"
 			STAT_FERET_DIAM_STDDEV,
 			STAT_FERET_DIAM_MODE});
 
+	// Features whose classes we want the Feature Manager to calculate prior to this feature class
 	add_dependencies({ CONVEX_HULL_AREA });
 }
 
 void CaliperFeretFeature::calculate(LR& r)
 {
-	if (r.has_bad_data())
-		return;
-
 	std::vector<double> allD;	// Diameters at 0-180 degrees rotation
-	calculate_imp(r.convHull_CH, allD);
+	calculate_diameters (r.convHull_CH, allD);
 
 	// Calculate statistics of diameters
 	auto s = ComputeCommonStatistics2(allD);
@@ -76,7 +74,7 @@ void CaliperFeretFeature::save_value(std::vector<std::vector<double>>& fvals)
 	fvals[STAT_FERET_DIAM_MODE][0] = _mode;
 }
 
-void CaliperFeretFeature::calculate_imp(const std::vector<Pixel2>& convex_hull, std::vector<double>& all_D)
+void CaliperFeretFeature::calculate_diameters (const std::vector<Pixel2>& convex_hull, std::vector<double>& all_D)
 {
 	// Rotated convex hull
 	std::vector<Pixel2> CH_rot;
@@ -180,10 +178,6 @@ void CaliperFeretFeature::parallel_process_1_batch(size_t firstitem, size_t last
 		// Get ahold of ROI's label and cache
 		int roiLabel = (*ptrLabels)[i];
 		LR& r = (*ptrLabelData)[roiLabel];
-
-		// Skip the ROI if its data is invalid to prevent nans and infs in the output
-		if (r.has_bad_data())
-			continue;
 
 		// Calculate the feature and save it in ROI's csv-friendly buffer 'fvals'
 		CaliperFeretFeature f;
