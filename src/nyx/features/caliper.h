@@ -11,7 +11,7 @@ class CaliperNassensteinFeature : public FeatureMethod
 public:
 	CaliperNassensteinFeature();
 	void calculate (LR& r);
-	void osized_add_online_pixel (size_t x, size_t y, uint32_t intensity) {};		// No online mode for this feature
+	void osized_add_online_pixel (size_t x, size_t y, uint32_t intensity) {}		// No online mode for this feature
 	void osized_calculate (LR& r, ImageLoader& imloader);
 	void save_value (std::vector<std::vector<double>>& feature_vals);
 	static void parallel_process_1_batch (size_t start, size_t end, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData);
@@ -29,7 +29,7 @@ public:
 			}
 
 private:
-	void calculate_imp(const std::vector<Pixel2>& convex_hull, std::vector<double>& all_D);
+	void calculate_diameters (const std::vector<Pixel2>& convex_hull, std::vector<double>& all_D);
 
 	// Results instance cache
 	double _min = 0, _max = 0, _mean = 0, _median = 0, _stdev = 0, _mode = 0;
@@ -112,7 +112,7 @@ public:
 	}
 
 private:
-	void calculate_imp(const std::vector<Pixel2>& convex_hull, std::vector<double>& all_D);
+	void calculate_diameters (const std::vector<Pixel2>& convex_hull, std::vector<double>& all_D);
 
 	// Results instance cache
 	double _min = 0, _max = 0, _mean = 0, _median = 0, _stdev = 0, _mode = 0;

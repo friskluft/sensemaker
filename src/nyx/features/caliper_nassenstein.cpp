@@ -11,18 +11,17 @@ CaliperNassensteinFeature::CaliperNassensteinFeature() : FeatureMethod("CaliperN
 			STAT_NASSENSTEIN_DIAM_MEDIAN,
 			STAT_NASSENSTEIN_DIAM_STDDEV,
 			STAT_NASSENSTEIN_DIAM_MODE });
+
+	// Features whose classes we want the Feature Manager to calculate prior to this feature class
+	add_dependencies ({CONVEX_HULL_AREA});
 }
 
 void CaliperNassensteinFeature::calculate (LR& r)
 {
-	if (r.has_bad_data())
-		return;
-
-	std::vector<double> allD;	// Diameters at 0-180 degrees rotation
-	calculate_imp (r.convHull_CH, allD);
+	std::vector<double> allD;	// diameters at 0-180 degrees rotation
+	calculate_diameters (r.convHull_CH, allD);
 
 	auto s = ComputeCommonStatistics2(allD);
-
 	_min = (double)s.min;
 	_max = (double)s.max;
 	_mean = s.mean;
@@ -41,7 +40,7 @@ void CaliperNassensteinFeature::save_value (std::vector<std::vector<double>>& fv
 	fvals[STAT_NASSENSTEIN_DIAM_MODE][0] = _mode;
 }
 
-void CaliperNassensteinFeature::calculate_imp (const std::vector<Pixel2>& convex_hull, std::vector<double>& all_D)
+void CaliperNassensteinFeature::calculate_diameters (const std::vector<Pixel2>& convex_hull, std::vector<double>& all_D)
 {
 	// Rotated convex hull
 	std::vector<Pixel2> CH_rot;
@@ -210,10 +209,6 @@ void CaliperNassensteinFeature::parallel_process_1_batch (size_t firstitem, size
 		// Get ahold of ROI's label and cache
 		int roiLabel = (*ptrLabels) [i];
 		LR& r = (*ptrLabelData) [roiLabel];
-
-		// Skip the ROI if its data is invalid to prevent nans and infs in the output
-		if (r.has_bad_data())
-			continue;
 
 		// Calculate the feature and save it in ROI's csv-friendly buffer 'fvals'
 		CaliperNassensteinFeature f;
