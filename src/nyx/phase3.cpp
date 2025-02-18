@@ -20,15 +20,21 @@ namespace Nyxus
 	/// 
 	bool processNontrivialRois (const std::vector<int>& nontrivRoiLabels, const std::string& intens_fpath, const std::string& label_fpath, int num_FL_threads)
 	{
-		for (auto lab : nontrivRoiLabels)
+		// Sort labels for reproducibility with function's trivial counterpart. Nontrivial part of the workflow isn't time-critical anyway
+		auto L = nontrivRoiLabels;
+		std::sort (L.begin(), L.end());
+
+		for (auto lab : L)
 		{
 			LR& r = roiData[lab];
 
 			VERBOSLVL1(std::cout << "processing oversized ROI " << lab << "\n");
 
 			// Scan one label-intensity pair 
-			bool ok = theImLoader.open(intens_fpath, label_fpath);
-			if (ok == false)
+			SlideProps p;
+			p.fname_int = intens_fpath;
+			p.fname_seg = label_fpath;
+			if (! theImLoader.open(p))
 			{
 				std::cout << "Terminating\n";
 				return false;

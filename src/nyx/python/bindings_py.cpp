@@ -28,7 +28,7 @@
 // [3] - number of unique ROI labels (ny)
 // [4] - data buffer [nx X ny] requiring further deallocation
 //
-std::tuple<int, std::string, size_t, size_t, double*> featureSetInvoker(std::initializer_list<AvailableFeatures>& desiredFeatures, const std::string& label_path, const std::string& intensity_path)
+std::tuple<int, std::string, size_t, size_t, double*> featureSetInvoker(std::initializer_list<Feature2D>& desiredFeatures, const std::string& label_path, const std::string& intensity_path)
 {
 	double* retbuf = nullptr;
 
@@ -38,14 +38,11 @@ std::tuple<int, std::string, size_t, size_t, double*> featureSetInvoker(std::ini
 
 	// Try to reach data files at directories 'label_path' and 'intensity_path'
 	std::vector <std::string> intensFiles, labelFiles;
-	int errorCode = Nyxus::read_dataset (intensity_path, label_path, "outputPath", "", "", false, intensFiles, labelFiles);
+	int errorCode = Nyxus::read_2D_dataset (intensity_path, label_path, "outputPath", "", "", false, intensFiles, labelFiles);
 
 	// Check for error
 	if (errorCode)
 		return { 1, "Dataset structure error", 0, 0, nullptr };
-
-	// One-time initialization
-	Nyxus::init_feature_buffers();
 
 	// Process the image sdata. Upon return, global buffer 'calcResultBuf' will be filled with result data
 	errorCode = Nyxus::processDataset(
@@ -119,7 +116,7 @@ PYBIND11_MODULE(nyx_backend, m)
 
 			// Try to reach data files at directories 'label_path' and 'intensity_path'
 			std::vector <std::string> intensFiles, labelFiles;
-			int errorCode = Nyxus::read_dataset (intensity_path, label_path, "outputPath", "", "", false, intensFiles, labelFiles);
+			int errorCode = Nyxus::read_2D_dataset (intensity_path, label_path, "outputPath", "", "", false, intensFiles, labelFiles);
 			if (errorCode)
 			{
 				std::cout << std::endl << "Dataset structure error" << std::endl;
@@ -177,18 +174,24 @@ PYBIND11_MODULE(nyx_backend, m)
 					MIN,
 					MAX,
 					RANGE,
+					COVERED_IMAGE_INTENSITY_RANGE,
 					STANDARD_DEVIATION,
 					SKEWNESS,
 					KURTOSIS,
+					EXCESS_KURTOSIS,
 					MEAN_ABSOLUTE_DEVIATION,
+					MEDIAN_ABSOLUTE_DEVIATION,
 					ENERGY,
 					ROOT_MEAN_SQUARED,
 					ENTROPY,
 					MODE,
 					UNIFORMITY,
 					P10, P25, P75, P90,
+					QCOD,
 					INTERQUARTILE_RANGE,
+					ROBUST_MEAN, 
 					ROBUST_MEAN_ABSOLUTE_DEVIATION,
+					COV,
 					WEIGHTED_CENTROID_Y,
 					WEIGHTED_CENTROID_X };
 				auto [errorCode, errorDetails, nx, ny, retbuf] = featureSetInvoker(desiredFeatures, label_path, intensity_path);
@@ -248,8 +251,6 @@ PYBIND11_MODULE(nyx_backend, m)
 		{
 			// Calculate features
 			auto desiredFeatures = { 
-				MIN_FERET_DIAMETER, 
-				MAX_FERET_DIAMETER, 
 				MIN_FERET_ANGLE, 
 				MAX_FERET_ANGLE, 
 				STAT_FERET_DIAM_MIN, 

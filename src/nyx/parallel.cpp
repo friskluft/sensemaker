@@ -109,7 +109,13 @@ namespace Nyxus
 		std::vector<std::future<void>> futures;
 
 		// File #1 (intensity)
-		NyxusGrayscaleTiffTileLoader<uint32_t> I(num_fastloader_threads, intens_fpath);
+		NyxusGrayscaleTiffTileLoader<uint32_t> I(
+			num_fastloader_threads, 
+			intens_fpath, 
+			true,
+			Nyxus::theEnvironment.fpimageOptions.min_intensity(),
+			Nyxus::theEnvironment.fpimageOptions.max_intensity(),
+			Nyxus::theEnvironment.fpimageOptions.target_dyn_range());
 
 		size_t th = I.tileHeight(lvl),
 			tw = I.tileWidth(lvl),
@@ -124,7 +130,13 @@ namespace Nyxus
 			ntd = I.numberTileDepth(lvl);
 
 		// File #2 (labels)
-		NyxusGrayscaleTiffTileLoader<uint32_t> L(num_fastloader_threads, label_fpath);
+		NyxusGrayscaleTiffTileLoader<uint32_t> L(
+			num_fastloader_threads, 
+			label_fpath,
+			false,
+			Nyxus::theEnvironment.fpimageOptions.min_intensity(),
+			Nyxus::theEnvironment.fpimageOptions.max_intensity(),
+			Nyxus::theEnvironment.fpimageOptions.target_dyn_range());
 
 		// -- check whole file consistency
 		if (fh != L.fullHeight(lvl) || fw != L.fullWidth(lvl) || fd != L.fullDepth(lvl))

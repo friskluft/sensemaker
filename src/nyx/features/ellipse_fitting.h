@@ -10,6 +10,17 @@
 class EllipseFittingFeature: public FeatureMethod
 {
 public:
+
+	const constexpr static std::initializer_list<Nyxus::Feature2D> featureset =
+	{
+		Nyxus::Feature2D::MAJOR_AXIS_LENGTH,
+		Nyxus::Feature2D::MINOR_AXIS_LENGTH,
+		Nyxus::Feature2D::ECCENTRICITY,
+		Nyxus::Feature2D::ELONGATION,
+		Nyxus::Feature2D::ORIENTATION,
+		Nyxus::Feature2D::ROUNDNESS
+	};
+
 	EllipseFittingFeature();
 
 	// Trivial ROI
@@ -21,8 +32,6 @@ public:
 
 	// Result saver
 	void save_value(std::vector<std::vector<double>>& feature_vals);
-
-
 
 	/// @brief Major axis length of Legendre's ellipse of inertia
 	/// @return 
@@ -40,7 +49,7 @@ public:
 	/// @return Value of the ellipse elongation feature
 	double get_elongation();
 
-	/// @brief Orientation describes whather the ellipse is horizontal or vertical
+	/// @brief Orientation describes whether the ellipse is horizontal or vertical
 	/// @return 
 	double get_orientation();
 
@@ -48,7 +57,8 @@ public:
 	/// @return 
 	double get_roundness();
 
-	static bool required (const FeatureSet& fs) { return fs.anyEnabled ({ MAJOR_AXIS_LENGTH, MINOR_AXIS_LENGTH, ECCENTRICITY, ORIENTATION, ROUNDNESS }); }
+	static bool required (const FeatureSet& fs); 
+	static void extract (LR& roi); // extracts the feature of- and saves to ROI
 	static void reduce (size_t start, size_t end, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData);
 
 private:

@@ -23,20 +23,30 @@ Nyxus provided features
      - Maximum intensity value in the ROI
    * - RANGE
      - Range between the maximmu and minimum
+   * - COVERED_IMAGE_INTENSITY_RANGE
+     - intensity range of the ROI to intensity range of all the ROIs
    * - STANDARD_DEVIATION
-     - Standard deviation
+     - Standard deviation (unbiased)
+   * - STANDARD_DEVIATION_BIASED
+     - Biased standard deviation
+   * - COV
+     - Coefficient of variation
    * - STANDARD_ERROR
      - Standard error
    * - SKEWNESS
      - Skewness - the 3rd standardized moment
    * - KURTOSIS
-     - Kurtosis - the 4th standardized moment
+     - Kurtosis - the 4th standardized moment (Pearson formula)
+   * - EXCESS_KURTOSIS
+     - Excess kurtosis - the 4th standardized moment (Fisher-corrected formula, IBSI feature IPH6)
    * - HYPERSKEWNESS
      - Hyperskewness - the 5th standardized moment
    * - HYPERFLATNESS
      - Hyperflatness - the 6th standardized moment
    * - MEAN_ABSOLUTE_DEVIATION
-     - Mean absolute devation
+     - Mean absolute deviation
+   * - MEDIAN_ABSOLUTE_DEVIATION
+     - Median absolute deviation
    * - ENERGY
      - ROI energy
    * - ROOT_MEAN_SQUARED
@@ -51,6 +61,8 @@ Nyxus provided features
      - Percent image uniformity, another measure of intensity distribution uniformity
    * - P01, P10, P25, P75, P90, P99
      - 1%, 10%, 25%, 75%, 90%, and 99% percentiles of intensity distribution
+   * - QCOD 
+     - quantile coefficient of dispersion
    * - INTERQUARTILE_RANGE
      - Distribution's interquartile range
    * - ROBUST_MEAN_ABSOLUTE_DEVIATION
@@ -273,40 +285,74 @@ Nyxus provided features
 
    * - Nyxus feature code
      - Description
-   * - GLCM_ANGULAR2NDMOMENT
-     - Gray Level Co-occurrence Matrix (GLCM) Features, 2nd angular moment
+   * - GLCM_ASM
+     - GLCM, Angular second moment, IBSI # 8ZQL
+   * - GLCM_ACOR
+     - GLCM, Autocorrelation, IBSI # QWB0
+   * - GLCM_CLUPROM
+     - GLCM, Cluster prominence, IBSI # AE86
+   * - GLCM_CLUSHADE
+     - GLCM, Cluster shade, IBSI # 7NFM
+   * - GLCM_CLUTEND
+     - GLCM, Cluster tendency, IBSI # DG8W
    * - GLCM_CONTRAST
-     - GLCM, Contrast
+     - GLCM, Contrast, IBSI # ACUI
    * - GLCM_CORRELATION
-     - GLCM, Correlation
-   * - GLCM_VARIANCE
-     - GLCM, Variance
-   * - GLCM_INVERSEDIFFERENCEMOMENT
-     - GLCM, Inverse difference moment
-   * - GLCM_SUMAVERAGE
-     - GLCM, Sum average
-   * - GLCM_SUMVARIANCE
-     - GLCM, Sum variance
-   * - GLCM_SUMENTROPY
-     - GLCM, Sum entropy
+     - GLCM, Correlation, IBSI # NI2N
+   * - GLCM_DIFAVE
+     - GLCM, Difference average, IBSI # TF7R
+   * - GLCM_DIFENTRO
+     - GLCM, Difference entropy, IBSI # NTRS
+   * - GLCM_DIFVAR
+     - GLCM, Difference variance, IBSI # D3YU
+   * - GLCM_DIS
+     - GLCM, Dissimilarity, IBSI # 8S9J
+   * - GLCM_ENERGY
+     - GLCM, Energy
    * - GLCM_ENTROPY
      - GLCM, Entropy
-   * - GLCM_DIFFERENCEVARIANCE
-     - GLCM, Difference variance
-   * - GLCM_DIFFERENCEENTROPY
-     - GLCM, Difference entropy
+   * - GLCM_HOM1
+     - GLCM, Homogeneity-1
+   * - GLCM_HOM2
+     - GLCM, Homogeneity-2
+   * - GLCM_ID
+     - GLCM, Inverse difference, IBSI # IB1Z
+   * - GLCM_IDN
+     - GLCM, Inverse difference normalized, IBSI # NDRX
+   * - GLCM_IDM
+     - GLCM, Inverse difference moment, IBSI # WF0Z
+   * - GLCM_IDMN
+     - GLCM, Inverse difference moment normalized, IBSI # 1QCO
    * - GLCM_INFOMEAS1
-     - GLCM, Informational Measure of Correlation (IMC) 1
+     - GLCM, Information measure of correlation 1, IBSI # R8DG
    * - GLCM_INFOMEAS2
-     - GLCM, Informational Measure of Correlation (IMC) 2
+     - GLCM, Information measure of correlation 2, IBSI # JN9H
+   * - GLCM_IV
+     - GLCM, Inverse variance, IBSI # E8JP
+   * - GLCM_JAVE
+     - GLCM, Joint average, IBSI # 60VM
+   * - GLCM_JE
+     - GLCM, Joint entropy, IBSI # TU9B
+   * - GLCM_JMAX
+     - GLCM, Joint maximum (aka max probability), IBSI # GYBY
+   * - GLCM_JVAR
+     - GLCM, Joint variance (aka sum of squares), IBSI # UR99
+   * - GLCM_SUMAVERAGE
+     - GLCM, Sum average, IBSI # ZGXS
+   * - GLCM_SUMENTROPY
+     - GLCM, Sum entropy, IBSI # P6QZ
+   * - GLCM_SUMVARIANCE
+     - GLCM, Sum variance, IBSI # OEEB
+   * - GLCM_VARIANCE
+     - GLCM, Variance
    * - GLRLM_SRE
-     - Gray level run-length matrix (GLRLM) based feature, Short Run Emphasis 
+     - Grey level run-length matrix (GLRLM) based feature, Short Run Emphasis 
    * - GLRLM_LRE
      - GLRLM, Long Run Emphasis 
    * - GLRLM_GLN
-     - GLRLM, Gray Level Non-Uniformity 
+     - GLRLM, Grey Level Non-Uniformity 
    * - GLRLM_GLNN
-     - GLRLM, Gray Level Non-Uniformity Normalized 
+     - GLRLM, Grey Level Non-Uniformity Normalized 
    * - GLRLM_RLN
      - GLRLM, Run Length Non-Uniformity
    * - GLRLM_RLNN
@@ -314,31 +360,67 @@ Nyxus provided features
    * - GLRLM_RP
      - GLRLM, Run Percentage
    * - GLRLM_GLV
-     - GLRLM, Gray Level Variance 
+     - GLRLM, Grey Level Variance 
    * - GLRLM_RV
      - GLRLM, Run Variance 
    * - GLRLM_RE
      - GLRLM, Run Entropy 
    * - GLRLM_LGLRE
-     - GLRLM, Low Gray Level Run Emphasis 
+     - GLRLM, Low Grey Level Run Emphasis 
    * - GLRLM_HGLRE
-     - GLRLM, High Gray Level Run Emphasis 
+     - GLRLM, High Grey Level Run Emphasis 
    * - GLRLM_SRLGLE
-     - GLRLM, Short Run Low Gray Level Emphasis 
+     - GLRLM, Short Run Low Grey Level Emphasis 
    * - GLRLM_SRHGLE
-     - GLRLM, Short Run High Gray Level Emphasis 
+     - GLRLM, Short Run High Grey Level Emphasis 
    * - GLRLM_LRLGLE
-     - GLRLM, Long Run Low Gray Level Emphasis 
+     - GLRLM, Long Run Low Grey Level Emphasis 
    * - GLRLM_LRHGLE
-     - GLRLM, Long Run High Gray Level Emphasis 
+     - GLRLM, Long Run High Grey Level Emphasis 
+   * - GLDZM_SDE
+     - GLDZM, Small Distance Emphasis
+   * - GLDZM_LDE
+     - GLDZM, Large Distance Emphasis
+   * - GLDZM_LGLE
+     - GLDZM, Low Grey Level Emphasis
+   * - GLDZM_HGLE
+     - GLDZM, High GreyLevel Emphasis
+   * - GLDZM_SDLGLE
+     - GLDZM, Small Distance Low Grey Level Emphasis
+   * - GLDZM_SDHGLE
+     - GLDZM, Small Distance High GreyLevel Emphasis
+   * - GLDZM_LDLGLE
+     - GLDZM, Large Distance Low Grey Level Emphasis
+   * - GLDZM_LDHGLE
+     - GLDZM, Large Distance High Grey Level Emphasis
+   * - GLDZM_GLNU
+     - GLDZM, Grey Level Non Uniformity
+   * - GLDZM_GLNUN
+     - GLDZM, Grey Level Non Uniformity Normalized
+   * - GLDZM_ZDNU
+     - GLDZM, Zone Distance Non Uniformity
+   * - GLDZM_ZDNUN
+     - GLDZM, Zone Distance Non Uniformity Normalized
+   * - GLDZM_ZP
+     - GLDZM, Zone Percentage
+   * - GLDZM_GLM
+     - GLDZM, Grey Level Mean
+   * - GLDZM_GLV
+     - GLDZM, Grey Level Variance
+   * - GLDZM_ZDM
+     - GLDZM, Zone Distance Mean
+   * - GLDZM_ZDV
+     - GLDZM, Zone Distance Variance
+   * - GLDZM_ZDE
+     - GLDZM, Zone Distance Entropy
    * - GLSZM_SAE
-     - Gray level size zone matrix (GLSZM) based feature, Small Area Emphasis
+     - GLDZM, Grey level size zone matrix (GLSZM) based feature, Small Area Emphasis
    * - GLSZM_LAE
      - Large Area Emphasis
    * - GLSZM_GLN
-     - Gray Level Non - Uniformity
+     - Grey Level Non - Uniformity
    * - GLSZM_GLNN
-     - Gray Level Non - Uniformity Normalized
+     - Grey Level Non - Uniformity Normalized
    * - GLSZM_SZN
      - Size - Zone Non - Uniformity
    * - GLSZM_SZNN
@@ -346,53 +428,91 @@ Nyxus provided features
    * - GLSZM_ZP
      - Zone Percentage
    * - GLSZM_GLV
-     - Gray Level Variance
+     - Grey Level Variance
    * - GLSZM_ZV
      - Zone Variance
    * - GLSZM_ZE
      - Zone Entropy
    * - GLSZM_LGLZE
-     - Low Gray Level Zone Emphasis
+     - Low Grey Level Zone Emphasis
    * - GLSZM_HGLZE
-     - High Gray Level Zone Emphasis
+     - High Grey Level Zone Emphasis
    * - GLSZM_SALGLE
-     - Small Area Low Gray Level Emphasis
+     - Small Area Low Grey Level Emphasis
    * - GLSZM_SAHGLE
-     - Small Area High Gray Level Emphasis
+     - Small Area High Grey Level Emphasis
    * - GLSZM_LALGLE
-     - Large Area Low Gray Level Emphasis
+     - Large Area Low Grey Level Emphasis
    * - GLSZM_LAHGLE
-     - Large Area High Gray Level Emphasis
+     - Large Area High Grey Level Emphasis
    * - GLDM_SDE
-     - Gray level dependency matrix (GLDM) based feature, Small Dependence Emphasis(SDE)
+     - Grey level dependency matrix (GLDM) based feature, Small Dependence Emphasis(SDE)
    * - GLDM_LDE
      - Large Dependence Emphasis (LDE)
    * - GLDM_GLN
-     - Gray Level Non-Uniformity (GLN)
+     - Grey Level Non-Uniformity (GLN)
    * - GLDM_DN
      - Dependence Non-Uniformity (DN)
    * - GLDM_DNN
      - Dependence Non-Uniformity Normalized (DNN)
    * - GLDM_GLV
-     - Gray Level Variance (GLV)
+     - Grey Level Variance (GLV)
    * - GLDM_DV
      - Dependence Variance (DV)
    * - GLDM_DE
      - Dependence Entropy (DE)
    * - GLDM_LGLE
-     - Low Gray Level Emphasis (LGLE)
+     - Low Grey Level Emphasis (LGLE)
    * - GLDM_HGLE
-     - High Gray Level Emphasis (HGLE)
+     - High Grey Level Emphasis (HGLE)
    * - GLDM_SDLGLE
-     - Small Dependence Low Gray Level Emphasis (SDLGLE)
+     - Small Dependence Low Grey Level Emphasis (SDLGLE)
    * - GLDM_SDHGLE
-     - Small Dependence High Gray Level Emphasis (SDHGLE)
+     - Small Dependence High Grey Level Emphasis (SDHGLE)
    * - GLDM_LDLGLE
-     - Large Dependence Low Gray Level Emphasis (LDLGLE)
+     - Large Dependence Low Grey Level Emphasis (LDLGLE)
    * - GLDM_LDHGLE
-     - Large Dependence High Gray Level Emphasis (LDHGLE)
+     - Large Dependence High Grey Level Emphasis (LDHGLE)
+
+   * - NGLDM_LDE
+     - Low Dependence Emphasis
+   * - NGLDM_HDE
+     - High Dependence Emphasis
+   * - NGLDM_LGLCE
+     - Low Grey Level Count Emphasis
+   * - NGLDM_HGLCE
+     - High Grey Level Count Emphasis
+   * - NGLDM_LDLGLE
+     - Low Dependence Low Grey Level Emphasis
+   * - NGLDM_LDHGLE
+     - Low Dependence High Grey Level Emphasis
+   * - NGLDM_HDLGLE
+     - High Dependence Low Grey Level Emphasis
+   * - NGLDM_HDHGLE
+     - High Dependence High Grey Level Emphasis
+   * - NGLDM_GLNU
+     - Grey Level Non-Uniformity
+   * - NGLDM_GLNUN
+     - Grey Level Non-Uniformity Normalised
+   * - NGLDM_DCNU
+     - Dependence Count Non-Uniformity
+   * - NGLDM_DCNUN
+     - Dependence Count Non-Uniformity Normalised
+   * - NGLDM_GLM
+     - Grey Level Mean
+   * - NGLDM_GLV
+     - Grey Level Variance
+   * - NGLDM_DCM
+     - Dependence Count Mean
+   * - NGLDM_DCV
+     - Dependence Count Variance
+   * - NGLDM_DCE
+     - Dependence Count Entropy
+   * - NGLDM_DCENE
+     - Dependence Count Energy
+
    * - NGTDM_COARSENESS
-     - Neighbouring Gray Tone Difference Matrix (NGTDM) Features, Coarseness
+     - Neighbouring Grey Tone Difference Matrix (NGTDM) Features, Coarseness
    * - NGTDM_CONTRAST
      - NGTDM, Contrast
    * - NGTDM_BUSYNESS
@@ -435,7 +555,7 @@ Nyxus provided features
      - A set of Gabor filters of varying frequencies and orientations
 
 
-**2D image moments:**
+**2D shape image moments:**
 
 ----
 
@@ -569,6 +689,139 @@ Nyxus provided features
    * - WEIGHTED_HU_M7
      - Weighted Hu's moment 7
 
+**2D intensity image moments:**
+
+----
+
+.. list-table::
+   :header-rows: 1
+
+   * - Nyxus feature code
+     - Description
+   * - IMOM_RM_00
+     - Spatial (raw) moments 
+   * - IMOM_RM_01
+     - of order 00, 01, 02, etc
+   * - IMOM_RM_02
+     - 
+   * - IMOM_RM_03
+     - 
+   * - IMOM_RM_10
+     - 
+   * - IMOM_RM_11
+     - 
+   * - IMOM_RM_12
+     - 
+   * - IMOM_RM_20
+     - 
+   * - IMOM_RM_21
+     - 
+   * - IMOM_RM_30
+     - 
+   * - IMOM_WRM_00
+     - Spatial moments weighted by pixel distance to ROI edge
+   * - IMOM_WRM_01
+     - 
+   * - IMOM_WRM_02
+     - 
+   * - IMOM_WRM_03
+     - 
+   * - IMOM_WRM_10
+     - 
+   * - IMOM_WRM_11
+     - 
+   * - IMOM_WRM_12
+     - 
+   * - IMOM_WRM_20
+     - 
+   * - IMOM_WRM_21
+     - 
+   * - IMOM_WRM_30
+     - 
+   * - IMOM_СM_02
+     - Central moments 
+   * - IMOM_СM_03
+     - 
+   * - IMOM_СM_11
+     - 
+   * - IMOM_СM_12
+     - 
+   * - IMOM_СM_20
+     - 
+   * - IMOM_СM_21
+     - 
+   * - IMOM_СM_30
+     - 
+   * - IMOM_WСM_02
+     - Central moments weighted by pixel distance to ROI edge
+   * - IMOM_WСM_03
+     - 
+   * - IMOM_WСM_11
+     - 
+   * - IMOM_WСM_12
+     - 
+   * - IMOM_WСM_20
+     - 
+   * - IMOM_WСM_21
+     - 
+   * - IMOM_WСM_30
+     - 
+   * - IMOM_NСM_02
+     - Normalized central moments
+   * - IMOM_NСM_03
+     - 
+   * - IMOM_NСM_11
+     - 
+   * - IMOM_NСM_
+     - 
+   * - IMOM_NСM_20
+     - 
+   * - IMOM_NСM_21
+     - 
+   * - IMOM_NСM_30
+     - 
+   * - IMOM_NRM_00
+     - Normalized (standardized) spatial moments
+   * - IMOM_NRM_01
+     - 
+   * - IMOM_NRM_02
+     - 
+   * - IMOM_NRM_03
+     - 
+   * - IMOM_NRM_10
+     - 
+   * - IMOM_NRM_20
+     - 
+   * - IMOM_NRM_30
+     - 
+   * - IMOM_HU1
+     - Hu's moment 1
+   * - IMOM_HU2
+     - Hu's moment 2
+   * - IMOM_HU3
+     - Hu's moment 3
+   * - IMOM_HU4
+     - Hu's moment 4
+   * - IMOM_HU5
+     - Hu's moment 5
+   * - IMOM_HU6
+     - Hu's moment 6
+   * - IMOM_HU7
+     - Hu's moment 7
+   * - IMOM_WHU1
+     - Weighted Hu's moment 1
+   * - IMOM_WHU2
+     - Weighted Hu's moment 2
+   * - IMOM_WHU3
+     - Weighted Hu's moment 3
+   * - IMOM_WHU4
+     - Weighted Hu's moment 4
+   * - IMOM_WHU5
+     - Weighted Hu's moment 5
+   * - IMOM_WHU6
+     - Weighted Hu's moment 6
+   * - IMOM_WHU7
+     - Weighted Hu's moment 7
 
 **Neighbor features:**
 
@@ -580,7 +833,7 @@ Nyxus provided features
    * - Nyxus feature code
      - Description
    * - NUM_NEIGHBORS
-     - The number of neighbors bordering the ROI's perimeter within proximity radius specified by command line argument --pixelDistance. (Default value of --pixelDistance is 5.) Algorithmically calculating this feature invilves solving the nearest neighbors search problem that in turn involves the proximity measure and the proximity threshold. Particularly, this plugin uses the $L\ *2$ norm measure over Cartesian space of pixel coordinates and parameter *\ --pixelDistance_
+     - The number of neighbors bordering the ROI's perimeter within proximity radius specified by command line argument --pixelDistance. (Default value of --pixelDistance is 5.) Algorithmically calculating this feature invilves solving the nearest neighbors search problem that in turn involves the proximity measure and the proximity threshold. Particularly, this plugin uses the :math:`L_2` norm measure over Cartesian space of pixel coordinates and parameter --pixelDistance 
    * - PERCENT_TOUCHING
      - Percent of ROI's contour pixels located at distance 0 from neighboring other ROIs's contour
    * - CLOSEST_NEIGHBOR1_DIST

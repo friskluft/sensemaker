@@ -8,9 +8,11 @@
   error "Missing the <filesystem> header."
 #endif
 #include <iostream>
+#include "environment.h"
 #include "image_loader1x.h"
 #include "grayscale_tiff.h"
 #include "omezarr.h"
+#include "nyxus_dicom_loader.h"
 #include "dirs_and_files.h"
 
 ImageLoader1x::ImageLoader1x() {}
@@ -29,13 +31,28 @@ bool ImageLoader1x::open(const std::string& fpath)
 			std::cout << "This version of Nyxus was not build with OmeZarr support." <<std::endl;
 			#endif
 		}
+		else if(fs::path(fpath).extension() == ".dcm" | fs::path(fpath).extension() == ".dicom"){
+			#ifdef DICOM_SUPPORT
+			FL = std::make_unique<NyxusGrayscaleDicomLoader<uint32_t>>(n_threads, fpath);
+			#else
+			std::cout << "This version of Nyxus was not build with DICOM support." <<std::endl; 
+			#endif
+		}
 		else 
 		{
 			if (Nyxus::check_tile_status(fpath))
-				FL = std::make_unique<NyxusGrayscaleTiffTileLoader<uint32_t>> (n_threads, fpath); 
+				FL = std::make_unique<NyxusGrayscaleTiffTileLoader<uint32_t>> (
+					n_threads, 
+					fpath, 
+					false, // prohibit real-valued intensities, as we are in the mask image scenario
+					0.0, // dummy min
+					999.0, // dummy max
+					Nyxus::theEnvironment.fpimageOptions.target_dyn_range());
 			else
 			{
-				FL = std::make_unique<NyxusGrayscaleTiffStripLoader<uint32_t>> (n_threads, fpath); 
+				FL = std::make_unique<NyxusGrayscaleTiffStripLoader<uint32_t>> (
+					n_threads, 
+					fpath);
 			}
 
 		}

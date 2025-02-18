@@ -1,9 +1,11 @@
 #include "roi_radius.h"
 
+using namespace Nyxus;
+
 RoiRadiusFeature::RoiRadiusFeature() : FeatureMethod("RoiRadiusFeature")
 {
-	provide_features ({ROI_RADIUS_MEAN, ROI_RADIUS_MAX, ROI_RADIUS_MEDIAN});
-	add_dependencies ({PERIMETER});
+	provide_features ({Feature2D::ROI_RADIUS_MEAN, Feature2D::ROI_RADIUS_MAX, Feature2D::ROI_RADIUS_MEDIAN});
+	add_dependencies ({ Feature2D::PERIMETER});
 }
 
 void RoiRadiusFeature::calculate (LR& r)
@@ -63,9 +65,16 @@ void RoiRadiusFeature::osized_calculate (LR& r, ImageLoader& imloader)
 
 void RoiRadiusFeature::save_value (std::vector<std::vector<double>>& fvals)
 {
-	fvals[ROI_RADIUS_MEAN][0] = mean_r;
-	fvals[ROI_RADIUS_MAX][0] = max_r;
-	fvals[ROI_RADIUS_MEDIAN][0] = median_r; 
+	fvals[(int)Feature2D::ROI_RADIUS_MEAN][0] = mean_r;
+	fvals[(int)Feature2D::ROI_RADIUS_MAX][0] = max_r;
+	fvals[(int)Feature2D::ROI_RADIUS_MEDIAN][0] = median_r;
+}
+
+void RoiRadiusFeature::extract (LR& r)
+{
+	RoiRadiusFeature rrf;
+	rrf.calculate(r);
+	rrf.save_value(r.fvals);
 }
 
 void RoiRadiusFeature::parallel_process_1_batch (size_t start, size_t end, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData)
@@ -75,8 +84,6 @@ void RoiRadiusFeature::parallel_process_1_batch (size_t start, size_t end, std::
 		int lab = (*ptrLabels)[i];
 		LR& r = (*ptrLabelData)[lab];
 
-		RoiRadiusFeature rrf;
-		rrf.calculate(r);
-		rrf.save_value(r.fvals);
+		extract (r);
 	}
 }

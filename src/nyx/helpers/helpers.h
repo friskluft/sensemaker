@@ -1,14 +1,18 @@
 #pragma once
-
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <tuple>
 #include <vector>
+#include <map>
+#include <algorithm>
+#include <numeric>
+#include <sstream>
 
 namespace Nyxus
 {
-
 	// String manipulation
+
 	inline void parse_delimited_string(const std::string& rawString, const std::string& delim, std::vector<std::string>& result)
 	{
 		result.clear();
@@ -25,6 +29,144 @@ namespace Nyxus
 			raw.erase(0, pos + delim.length());
 		}
 		result.push_back(raw);
+	}
+
+	// No tabs in 'txt' !
+	inline std::string box_text(const std::string& txt)
+	{
+		std::vector<std::string> L;
+		parse_delimited_string(txt, "\n", L);
+
+		size_t maxlen = 0, curlen = 0;
+		for (const auto& l : L)
+		{
+			auto len = l.size();
+			maxlen = (std::max)(maxlen, len);
+		}
+
+		std::stringstream ss;
+
+		ss << '+';
+		for (auto i = 0; i < maxlen + 2; i++)
+			ss << '-';
+		ss << '+' << '\n';
+
+		for (const auto& l : L)
+		{
+			ss << "| ";
+			ss << l;
+			for (auto i = l.size(); i < maxlen; i++)
+				ss << ' ';
+			ss << " |\n";
+		}
+
+		ss << '+';
+		for (auto i = 0; i < maxlen + 2; i++)
+			ss << '-';
+		ss << '+' << '\n';
+
+		return ss.str();
+	}
+
+	inline bool parse_as_float(const std::string& raw, float& result)
+	{
+		char* endptr;
+		const char* psz = raw.c_str();
+		float res = strtof (psz, &endptr);
+
+		// Did conversion happen?
+		if (endptr == psz)
+			return false;
+
+		// Was it successful?
+		if (*endptr != 0)
+			return false;
+
+		// Successful conversion, return its result
+		result = res;
+		return true;
+	}
+
+	inline bool parse_as_int(const std::string& raw, int& result)
+	{
+		char* endptr;
+		const char* psz = raw.c_str();
+		long res = strtol(psz, &endptr, 10);
+
+		// Did conversion happen?
+		if (endptr == psz)
+			return false;
+		
+		// Was it successful?
+		if (*endptr != 0)
+			return false;
+		
+		// Successful conversion, return its result
+		result = (int)res;
+		return true;
+	}
+
+	inline bool parse_delimited_string_list_to_ints(const std::string& rawString, std::vector<int>& result, std::string& error_msg)
+	{
+		// Blank list is legal
+		if (rawString.length() == 0)
+			return true;
+
+		// Parse the list
+		std::vector<std::string> strings;
+		parse_delimited_string(rawString, ",", strings);
+		result.clear();
+		for (auto& s : strings)
+		{
+			int v;
+			if (!parse_as_int(s, v))
+			{
+				error_msg = "Error: in '" + rawString + "' expecting '" + s + "' to be an integer number";
+				return false;
+			}
+			else
+				result.push_back(v);
+		}
+		return true;
+	}
+
+	inline bool parse_delimited_string_list_to_doubles (const std::string& rawString, std::vector<double>& result, std::string& error_msg)
+	{
+		// Blank list is legal
+		if (rawString.length() == 0)
+			return true;
+
+		// Parse the list
+		std::vector<std::string> strings;
+		parse_delimited_string(rawString, ",", strings);
+		result.clear();
+		for (auto& s : strings)
+		{
+			float v;
+			if (!parse_as_float(s, v))
+			{
+				error_msg = "Error: in '" + rawString + "' expecting '" + s + "' to be a real value";
+				return false;
+			}
+			else
+				result.push_back(v);
+		}
+		return true;
+	}
+
+	inline std::string toupper(const std::string& s)
+	{
+		auto s_uppr = s;
+		for (auto& c : s_uppr)
+			c = ::toupper(c);
+		return s_uppr;
+	}
+
+	// File path manipulation
+	inline std::string baseFname (const std::string & fpath)
+	{
+		std::string baseFN = fpath.substr (fpath.find_last_of("/\\") + 1);
+		return baseFN;
 	}
 
 	// Geometry
@@ -105,7 +247,12 @@ namespace Nyxus
 		std::cout << "]\n";
 	}
 
-	std::string getTimeStr(const std::string& head = "", const std::string& tail = "");
+	std::time_t getCurTime();
+
+	// returns seconds
+	double getTimeDiff(std::time_t beg, std::time_t end);
+	
+	std::string getTimeStr (std::time_t t = getCurTime());
 
 	// Inherited from WNDCHRM, used for Feret and Martin statistics calculation
 	struct Statistics
@@ -177,12 +324,126 @@ namespace Nyxus
 	/// @param min_i Minimum ROI's intensity
 	/// @param i_range Precalculated ROI's intensity range (= max-min)
 	/// @return Squeezed intensity within range [0,255]
-	inline unsigned int to_grayscale (unsigned int i, unsigned int min_i, unsigned int i_range, unsigned int n_levels)
+	inline unsigned int to_grayscale (unsigned int i, unsigned int min_i, unsigned int i_range, unsigned int n_levels, bool disable_binning=false)
 	{
-		unsigned int new_pi = (unsigned int) ((double(i-min_i) / double(i_range) * double(n_levels))) ;
+		if (disable_binning) 
+			return i;
+		
+		double pi = ((double(i-min_i) / double(i_range) * double(n_levels)));
+		unsigned int new_pi = (unsigned int)pi;
 		return new_pi;
 	}
 
 	bool parse_as_float(const std::string& raw, float& result);
-}
 
+	/**
+	 * @brief Check is str ends with substr
+	 * 
+	 * @param str String to check ending of
+	 * @param substr Ending to check for
+	 * @return true str ends with substr
+	 * @return false str does not end with substr
+	 */
+	inline bool ends_with_substr(const std::string& str, const std::string& substr) {
+
+		if (str.length() >= substr.length()) {
+        	return (0 == str.compare(str.length() - substr.length(), substr.length(), substr));
+		} 
+
+		return false;
+	}
+
+	inline double rad2deg (double x)
+	{
+		return x / 3.14159265358979323846 * 180.;
+	}
+	
+	inline double deg2rad (double x)
+	{
+		return x / 180. * 3.14159265358979323846;
+	}
+
+	inline double force_finite_number (double x, double nan_substitute)
+	{
+		if (std::isnan(x) || std::isinf(x))
+			return nan_substitute;
+		else
+			return x;
+	}
+
+	inline std::tuple<size_t, size_t> get_minmax_idx (const std::vector<double> & vec)
+	{
+		size_t n = vec.size();
+
+		if (n == 0)
+			return { 0,0 };
+
+		const double *ptr = vec.data();
+
+		size_t smallest = 0, largest = 0;
+		double smallestVal = ptr[smallest];
+		double largestVal = ptr[largest];
+
+		for (size_t i=1; i<n; i++)
+		{
+			if (ptr[i] < smallestVal)
+			{
+				smallest = i;
+				smallestVal = ptr[smallest];
+			}
+			if (ptr[i] > largestVal)
+			{
+				largest = i;
+				largestVal = ptr[largest];
+			}
+		}
+
+		return { smallest, largest };
+	}
+
+	inline std::string virguler (size_t x)
+	{
+		const char SEP = ',';
+
+		std::string s1 = std::to_string(x);
+		size_t s1_len = s1.length(),
+			n_vir = s1_len / 3,
+			s2_len = s1.length() + n_vir;
+		std::string s2(s2_len, '_');
+
+		size_t k = s2_len - 1;
+		for (size_t i = s1_len; i >= 1; i--)
+		{
+			char c1 = s1[i - 1];
+			s2[k--] = c1;
+			if ((s1_len - i) && (s1_len - i + 1) % 3 == 0)
+				s2[k--] = SEP;
+			continue;
+		}
+
+		// case where s1_len % 3 != 0
+		if (s2[0] == SEP)
+			s2.erase(0, 1);
+
+		return s2;
+	}
+
+	template <typename T>
+	inline std::string virguler (const std::vector<T> & x)
+	{
+		std::string rv;
+		for (auto i = 0; i < x.size(); i++)
+			rv += (i ? "," : "") + std::to_string(x[i]);
+		return rv;
+	}
+
+	inline std::string remove_whitespaces (const std::string & s)
+	{
+		std::string s2;
+		for (char c : s) 
+			if (!std::isspace(c)) 
+				s2 += c;
+		return s2;
+	}
+
+}

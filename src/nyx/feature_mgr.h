@@ -18,6 +18,10 @@ public:
 
 	void apply_user_selection();
 
+	// Initializes feature classes 
+	// (allocates lookup tables, precalculates filter banks, etc.)
+	bool init_feature_classes();
+
 	// After compiling, returns the number of user-requested features
 	int get_num_requested_features();
 
@@ -25,16 +29,17 @@ public:
 	FeatureMethod* get_feature_method (int idx);
 
 	// Returns a feature method pointer or null
-	FeatureMethod* get_feature_method_by_code(AvailableFeatures fcode);
+	//		fcode is Feature2D or Feature3D
+	FeatureMethod* get_feature_method_by_code (int fcode);
 
 private:
-	// This test checks if there exists a feature code in Nyxus::AvailableFeatures implemented by multiple feature methods
+	// This test checks if there exists a feature code in Nyxus::Feature2D implemented by multiple feature methods
 	bool check_11_correspondence();
 
 	// This test checks for cyclic feature dependencies and populates 'xdeps' 
 	bool gather_dependencies();
 
-	int get_num_fmethods_dependencies(FeatureMethod* fm, std::vector<Nyxus::AvailableFeatures> & parent_dependencies);
+	int get_num_fmethods_dependencies (const FeatureMethod* fm, std::vector<int> & parent_dependencies);
 
 	// Builds the requested set by copying items of 'featureset' requested via the command line into 'user_requested_features' along with their depended feature methods
 	void build_user_requested_set();
@@ -43,7 +48,7 @@ private:
 	std::vector<FeatureMethod*> full_featureset;
 	std::vector<FeatureMethod*> user_requested_features;	// Ordered set of FMs implementing user's feature selection
 
-	std::vector<std::vector<Nyxus::AvailableFeatures>> xdeps;	// Vector of 'full_featureset' items' extended dependencies (as feature codes)
+	std::vector<std::vector<int>> xdeps;	// Vector of 'full_featureset' items' extended dependencies (as feature codes)
 
 };
 

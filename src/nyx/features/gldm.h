@@ -4,6 +4,7 @@
 #include "../roi_cache.h"
 #include "image_matrix.h"
 #include "../feature_method.h"
+#include "texture_feature.h"
 
 // Inspired by 
 //		https://stackoverflow.com/questions/25019840/neighboring-gray-level-dependence-matrix-ngldm-in-matlab?fbclid=IwAR14fT0kpmjmOXRhKcguFMH3tCg0G4ubDLRxyHZoXdpKdbPxF7Zuq-WKE8o
@@ -20,28 +21,33 @@
 ///	in its neighbourhood appears in image.
 /// 
 
-class GLDMFeature: public FeatureMethod
+class GLDMFeature: public FeatureMethod, public TextureFeature
 {
-	using P_matrix = SimpleMatrix<int>;
-
 public:
-	static bool required(const FeatureSet& fs) {
-		return fs.anyEnabled({
-			GLDM_SDE,
-			GLDM_LDE,
-			GLDM_GLN,
-			GLDM_DN,
-			GLDM_DNN,
-			GLDM_GLV,
-			GLDM_DV,
-			GLDM_DE,
-			GLDM_LGLE,
-			GLDM_HGLE,
-			GLDM_SDLGLE,
-			GLDM_SDHGLE,
-			GLDM_LDLGLE,
-			GLDM_LDHGLE
-			});
+
+	// Codes of features implemented by this class. Used in feature manager's mechanisms, 
+	// in the feature group nickname expansion, and in the feature value output 
+	const constexpr static std::initializer_list<Nyxus::Feature2D> featureset =
+	{
+		Nyxus::Feature2D::GLDM_SDE,		// Small Dependence Emphasis
+		Nyxus::Feature2D::GLDM_LDE,		// Large Dependence Emphasis
+		Nyxus::Feature2D::GLDM_GLN,		// Gray Level Non-Uniformity
+		Nyxus::Feature2D::GLDM_DN,		// Dependence Non-Uniformity
+		Nyxus::Feature2D::GLDM_DNN,		// Dependence Non-Uniformity Normalized
+		Nyxus::Feature2D::GLDM_GLV,		// Gray Level Variance
+		Nyxus::Feature2D::GLDM_DV,		// Dependence Variance
+		Nyxus::Feature2D::GLDM_DE,		// Dependence Entropy
+		Nyxus::Feature2D::GLDM_LGLE,		// Low Gray Level Emphasis
+		Nyxus::Feature2D::GLDM_HGLE,		// High Gray Level Emphasis
+		Nyxus::Feature2D::GLDM_SDLGLE,	// Small Dependence Low Gray Level Emphasis
+		Nyxus::Feature2D::GLDM_SDHGLE,	// Small Dependence High Gray Level Emphasis
+		Nyxus::Feature2D::GLDM_LDLGLE,	// Large Dependence Low Gray Level Emphasis
+		Nyxus::Feature2D::GLDM_LDHGLE	// Large Dependence High Gray Level Emphasis
+	};
+
+	static bool required(const FeatureSet& fs) 
+	{
+		return fs.anyEnabled(GLDMFeature::featureset);
 	}
 
 	GLDMFeature ();
@@ -50,6 +56,7 @@ public:
 	void osized_add_online_pixel (size_t x, size_t y, uint32_t intensity);
 	void osized_calculate (LR& r, ImageLoader& imloader);
 	void save_value (std::vector<std::vector<double>>& feature_vals);
+	static void extract (LR& roi);
 	static void parallel_process_1_batch (size_t start, size_t end, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData);
 
 	// 1. Small Dependence Emphasis(SDE)
@@ -83,13 +90,35 @@ public:
 
 private:
 	bool bad_roi_data = false;	// used to prevent calculation of degenerate ROIs
-	int Ng = 0;	// number of discreet intensity values in the image
-	int Nd = 0; // number of discreet dependency sizes in the image
+	int Ng = 0;	// number of discrete intensity values in the image
+	int Nd = 0; // number of discrete dependency sizes in the image
 	int Nz = 0; // number of dependency zones in the ROI, Nz = sum(sum(P[i,j]))
 
 	SimpleMatrix<int> P;	// dependence matrix
 
+	std::vector<PixIntens> I;	// sorted unique intensities after image greyscale binning
+
+	void clear_buffers();
+
 	const double BAD_ROI_FVAL = 0.0;
 	const double EPS = 2.2e-16;
+	const double LOG10_2 = 0.30102999566;	// precalculated log 2 base 10
+
+	// feature values cache between calculate() and save_value()
+	double fv_SDE,
+		fv_LDE,
+		fv_GLN,
+		fv_DN,
+		fv_DNN,
+		fv_GLV,
+		fv_DV,
+		fv_DE,
+		fv_LGLE,
+		fv_HGLE,
+		fv_SDLGLE,
+		fv_SDHGLE,
+		fv_LDLGLE,
+		fv_LDHGLE;
+
 };
 

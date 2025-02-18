@@ -3,28 +3,45 @@
 #include <vector>
 #include "hexagonality_polygonality.h"
 
+using namespace Nyxus;
+
 HexagonalityPolygonalityFeature::HexagonalityPolygonalityFeature() : FeatureMethod("HexagonalityPolygonalityFeature")
 {
-    provide_features({ POLYGONALITY_AVE, HEXAGONALITY_AVE, HEXAGONALITY_STDDEV });
-    add_dependencies({ NUM_NEIGHBORS, PERIMETER, CONVEX_HULL_AREA, MAX_FERET_DIAMETER, MIN_FERET_DIAMETER });
+    provide_features({ Feature2D::POLYGONALITY_AVE, Feature2D::HEXAGONALITY_AVE, Feature2D::HEXAGONALITY_STDDEV });
+    add_dependencies({ Feature2D::NUM_NEIGHBORS, Feature2D::PERIMETER, Feature2D::CONVEX_HULL_AREA, Feature2D::STAT_FERET_DIAM_MAX, Feature2D::STAT_FERET_DIAM_MIN });
 }
 
 void HexagonalityPolygonalityFeature::calculate (LR& r)
 {
     // The whole calculation is inspired by calculation of this feature in POLUS feature extraction plugin 
-    // https://github.com/LabShare/polus-plugins/blob/master/polus-feature-extraction-plugin/src/main.py
+    // https://github.com/PolusAI/image-tools/tree/master/features/polus-feature-extraction-plugin
+    //
+    //  Interpreting feature values:
+    // 
+    //  Polygonality score: 
+    //      The score ranges from -infinity to 10. Score 10 indicates 
+    //      the object shape is a polygon and score -infinity indicates the object shape 
+    //      is not polygon.
+    //      
+     // Hexagonality score: 
+    //      The score ranges from -infinity to 10. Score 10 indicates the object shape 
+    //      is hexagon and score - infinity indicates the object shape is not hexagon.
+    //
+    //  Hexagonality standard deviation:
+    //      Dispersion of hexagonality_score relative to its mean.
+    //
 
-    size_t neighbors = r.fvals[NUM_NEIGHBORS][0];
+    size_t neighbors = r.fvals[(int)Feature2D::NUM_NEIGHBORS][0];
     double area = r.aux_area; 
-    double perimeter = r.fvals[PERIMETER][0];
-    double area_hull = r.fvals[CONVEX_HULL_AREA][0];
+    double perimeter = r.fvals[(int)Feature2D::PERIMETER][0];
+    double area_hull = r.fvals[(int)Feature2D::CONVEX_HULL_AREA][0];
     double perim_hull = 6 * sqrt(area_hull / (1.5 * sqrt(3)));
-    double min_feret_diam = r.fvals[MIN_FERET_DIAMETER][0];
-    double max_feret_diam = r.fvals[MAX_FERET_DIAMETER][0];
+    double min_feret_diam = r.fvals[(int)Feature2D::STAT_FERET_DIAM_MIN][0];
+    double max_feret_diam = r.fvals[(int)Feature2D::STAT_FERET_DIAM_MAX][0];
     double perimeter_neighbors;
 
     if (neighbors == 0)
-        perimeter_neighbors = std::numeric_limits<double>::quiet_NaN();
+        perimeter_neighbors = HexagonalityPolygonalityFeature::novalue;
     else
         perimeter_neighbors = perimeter / neighbors;
 
@@ -111,7 +128,7 @@ void HexagonalityPolygonalityFeature::calculate (LR& r)
         std::vector<double> list_perim = { perim1, perim2, perim3, perim4, perim5, perim6, perim7, perim8, perim9, perim10, perim11, perim12, perim13, perim14 };
         std::vector<double> perim_array; 
 
-        // 1 - Create an array of the ratio of all Perimeters to eachother. 2 - Create Summary statistics of all array ratios.
+        // 1 - Create an array of the ratio of all Perimeters to each other. 2 - Create Summary statistics of all array ratios.
         double sum2 = 0;
         for (int ib = 0; ib < list_perim.size(); ++ib)
             for (int ic = ib + 1; ic < list_perim.size(); ++ic)
@@ -141,9 +158,9 @@ void HexagonalityPolygonalityFeature::calculate (LR& r)
     else
         if (neighbors < 3)
         {
-            polyAve = std::numeric_limits<double>::quiet_NaN();
-            hexAve = std::numeric_limits<double>::quiet_NaN();
-            hexSd = std::numeric_limits<double>::quiet_NaN();
+            polyAve = HexagonalityPolygonalityFeature::novalue;
+            hexAve = HexagonalityPolygonalityFeature::novalue;
+            hexSd = HexagonalityPolygonalityFeature::novalue;
         }
 }
 
@@ -157,9 +174,9 @@ void HexagonalityPolygonalityFeature::osized_calculate(LR& r, ImageLoader&)
 
 void HexagonalityPolygonalityFeature::save_value(std::vector<std::vector<double>>& fvals)
 {
-    fvals[POLYGONALITY_AVE][0] = polyAve;
-    fvals[HEXAGONALITY_AVE][0] = hexAve;
-    fvals[HEXAGONALITY_STDDEV][0] = hexSd;
+    fvals[(int)Feature2D::POLYGONALITY_AVE][0] = polyAve;
+    fvals[(int)Feature2D::HEXAGONALITY_AVE][0] = hexAve;
+    fvals[(int)Feature2D::HEXAGONALITY_STDDEV][0] = hexSd;
 }
 
 void HexagonalityPolygonalityFeature::parallel_process_1_batch (size_t start, size_t end, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData)
@@ -169,12 +186,29 @@ void HexagonalityPolygonalityFeature::parallel_process_1_batch (size_t start, si
         int lab = (*ptrLabels)[i];
         LR& r = (*ptrLabelData)[lab];
 
+        // Feasibility check #1
         if (r.has_bad_data())
-            continue;
+        {
+            // Explicitly assign dummy yet valid values to indicate that features weren't calculated. Better than NAN - less data cleaning before training
+            HexagonalityPolygonalityFeature hexpo;
+            hexpo.polyAve = hexpo.hexAve = hexpo.hexSd = HexagonalityPolygonalityFeature::novalue;
+            hexpo.save_value(r.fvals);
 
-        // Skip if the contour, convex hull, and neighbors are unavailable, otherwise the related features will be == NAN. Those feature will be equal to the default unassigned value.
-        if (r.contour.size() == 0 || r.convHull_CH.size() == 0 || r.fvals[NUM_NEIGHBORS][0] == 0)
+            // Skip feature calculation
             continue;
+        }
+
+        // Feasibility check #2
+        if (r.contour.size() == 0 || r.fvals[(int)Feature2D::CONVEX_HULL_AREA][0] == 0 || r.fvals[(int)Feature2D::NUM_NEIGHBORS][0] == 0)
+        {
+            // Explicitly assign dummy yet valid values to indicate that features weren't calculated. Better than NAN - less data cleaning before training
+            HexagonalityPolygonalityFeature hexpo;
+            hexpo.polyAve = hexpo.hexAve = hexpo.hexSd = HexagonalityPolygonalityFeature::novalue;
+            hexpo.save_value(r.fvals);
+
+            // Skip feature calculation
+            continue;
+        }
 
         HexagonalityPolygonalityFeature hexpo;
         hexpo.calculate(r);

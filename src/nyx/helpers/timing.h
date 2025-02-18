@@ -16,16 +16,20 @@ public:
 	~Stopwatch();
 	static void add_measurement_once(const std::string& measurement_name, double value) 
 	{ 
-		totals[measurement_name] = value; 
+		totals[measurement_name] += value; 
 	}
+	static bool exclusive();
+	static bool inclusive();
+	static void set_inclusive(bool);
 	static void print_stats();
 	static void save_stats(const std::string & fpath);
-	static void reset() { totals.clear(); }
+	static void reset();
 
 protected:
 	std::string header, tail;
 	std::chrono::time_point<std::chrono::system_clock> start, end;
 	static std::map <std::string, double> totals;
+	static bool inclusive_;
 };
 
 #ifdef CHECKTIMING

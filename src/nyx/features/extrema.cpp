@@ -1,25 +1,16 @@
 #include "extrema.h"
 
+using namespace Nyxus;
+
+bool ExtremaFeature::required(const FeatureSet& fs)
+{
+	return fs.anyEnabled (ExtremaFeature::featureset);
+}
+
+
 ExtremaFeature::ExtremaFeature() : FeatureMethod("ExtremaFeature") 
 {
-	provide_features({
-		EXTREMA_P1_Y,
-		EXTREMA_P1_X,
-		EXTREMA_P2_Y,
-		EXTREMA_P2_X,
-		EXTREMA_P3_Y,
-		EXTREMA_P3_X,
-		EXTREMA_P4_Y,
-		EXTREMA_P4_X,
-		EXTREMA_P5_Y,
-		EXTREMA_P5_X,
-		EXTREMA_P6_Y,
-		EXTREMA_P6_X,
-		EXTREMA_P7_Y,
-		EXTREMA_P7_X,
-		EXTREMA_P8_Y,
-		EXTREMA_P8_X
-		});
+	provide_features (ExtremaFeature::featureset);
 }
 
 void ExtremaFeature::calculate (LR& r)
@@ -163,22 +154,29 @@ std::tuple<int, int, int, int, int, int, int, int, int, int, int, int, int, int,
 
 void ExtremaFeature::save_value (std::vector<std::vector<double>>& fvals)
 {
-	fvals [EXTREMA_P1_Y][0] = y1;
-	fvals [EXTREMA_P1_X][0] = x1;
-	fvals[EXTREMA_P2_Y][0] = y2;
-	fvals[EXTREMA_P2_X][0] = x2;
-	fvals[EXTREMA_P3_Y][0] = y3;
-	fvals[EXTREMA_P3_X][0] = x3;
-	fvals[EXTREMA_P4_Y][0] = y4;
-	fvals[EXTREMA_P4_X][0] = x4;
-	fvals[EXTREMA_P5_Y][0] = y5;
-	fvals[EXTREMA_P5_X][0] = x5;
-	fvals[EXTREMA_P6_Y][0] = y6;
-	fvals[EXTREMA_P6_X][0] = x6;
-	fvals[EXTREMA_P7_Y][0] = y7;
-	fvals[EXTREMA_P7_X][0] = x7;
-	fvals[EXTREMA_P8_Y][0] = y8;
-	fvals[EXTREMA_P8_X][0] = x8;
+	fvals [(int)Feature2D::EXTREMA_P1_Y][0] = y1;
+	fvals [(int)Feature2D::EXTREMA_P1_X][0] = x1;
+	fvals [(int)Feature2D::EXTREMA_P2_Y][0] = y2;
+	fvals [(int)Feature2D::EXTREMA_P2_X][0] = x2;
+	fvals [(int)Feature2D::EXTREMA_P3_Y][0] = y3;
+	fvals [(int)Feature2D::EXTREMA_P3_X][0] = x3;
+	fvals [(int)Feature2D::EXTREMA_P4_Y][0] = y4;
+	fvals [(int)Feature2D::EXTREMA_P4_X][0] = x4;
+	fvals [(int)Feature2D::EXTREMA_P5_Y][0] = y5;
+	fvals [(int)Feature2D::EXTREMA_P5_X][0] = x5;
+	fvals [(int)Feature2D::EXTREMA_P6_Y][0] = y6;
+	fvals [(int)Feature2D::EXTREMA_P6_X][0] = x6;
+	fvals [(int)Feature2D::EXTREMA_P7_Y][0] = y7;
+	fvals [(int)Feature2D::EXTREMA_P7_X][0] = x7;
+	fvals [(int)Feature2D::EXTREMA_P8_Y][0] = y8;
+	fvals [(int)Feature2D::EXTREMA_P8_X][0] = x8;
+}
+
+void ExtremaFeature::extract (LR& r)
+{
+	ExtremaFeature ef;
+	ef.calculate (r);
+	ef.save_value(r.fvals);
 }
 
 void ExtremaFeature::reduce (size_t start, size_t end, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData)
@@ -191,9 +189,7 @@ void ExtremaFeature::reduce (size_t start, size_t end, std::vector<int>* ptrLabe
 		if (r.has_bad_data())
 			continue;
 
-		ExtremaFeature ef;
-		ef.calculate (r);
-		ef.save_value(r.fvals);
+		extract (r);
 	}
 }
 

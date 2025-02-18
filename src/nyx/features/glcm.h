@@ -4,8 +4,8 @@
 #include "../roi_cache.h"
 #include "image_matrix.h"
 #include "../feature_method.h"
+#include "texture_feature.h"
 
-#define PGM_MAXMAXVAL 255
 
 /// @brief Gray Level Cooccurrence Matrix(GLCM) features
 /// Gray Level Cooccurrence Matrix(GLCM) of size : math:`N_g \times N_g` describes the second - order joint probability
@@ -18,36 +18,118 @@
 /// 	:math:`\delta = 2` a 98 - connectivity(49 unique angles).
 /// 
 
-class GLCMFeature: public FeatureMethod
+class GLCMFeature : public FeatureMethod, public TextureFeature
 {
-	using AngledFeatures = std::vector<double>;
-
 public:
 
-	static int offset;	// default value: 1
-	static int n_levels;	// default value: 8
-	static std::vector<int> angles;	// default value: {0,45,90,135} (the supreset)
-
-	static bool required(const FeatureSet& fs) 
+	// Codes of features implemented by this class. Used in feature manager's mechanisms, 
+	// in the feature group nickname expansion, and in the feature value output 
+	const constexpr static std::initializer_list<Nyxus::Feature2D> featureset =
 	{
-		return fs.anyEnabled( {
-				GLCM_ANGULAR2NDMOMENT,
-				GLCM_CONTRAST,
-				GLCM_CORRELATION,
-				GLCM_DIFFERENCEAVERAGE,	
-				GLCM_DIFFERENCEVARIANCE,
-				GLCM_DIFFERENCEENTROPY,
-				GLCM_ENERGY, 
-				GLCM_ENTROPY,
-				GLCM_HOMOGENEITY,	
-				GLCM_INFOMEAS1,
-				GLCM_INFOMEAS2,
-				GLCM_INVERSEDIFFERENCEMOMENT,
-				GLCM_SUMAVERAGE,
-				GLCM_SUMVARIANCE,
-				GLCM_SUMENTROPY,
-				GLCM_VARIANCE
-			});
+		Nyxus::Feature2D::GLCM_ACOR,		// Autocorrelation, IBSI # QWB0
+		Nyxus::Feature2D::GLCM_ASM,		// Angular second moment	IBSI # 8ZQL
+		Nyxus::Feature2D::GLCM_CLUPROM,	// Cluster prominence, IBSI # AE86
+		Nyxus::Feature2D::GLCM_CLUSHADE,	// Cluster shade, IBSI # 7NFM
+		Nyxus::Feature2D::GLCM_CLUTEND,	// Cluster tendency, IBSI # DG8W
+		Nyxus::Feature2D::GLCM_CONTRAST,	// Contrast, IBSI # ACUI
+		Nyxus::Feature2D::GLCM_CORRELATION,	// Correlation, IBSI # NI2N
+		Nyxus::Feature2D::GLCM_DIFAVE,	// Difference average, IBSI # TF7R
+		Nyxus::Feature2D::GLCM_DIFENTRO,	// Difference entropy, IBSI # NTRS
+		Nyxus::Feature2D::GLCM_DIFVAR,	// Difference variance, IBSI # D3YU
+		Nyxus::Feature2D::GLCM_DIS,		// Dissimilarity, IBSI # 8S9J
+		Nyxus::Feature2D::GLCM_ENERGY,	// Energy
+		Nyxus::Feature2D::GLCM_ENTROPY,	// Entropy
+		Nyxus::Feature2D::GLCM_HOM1,		// Homogeneity-1 (PyR)
+		Nyxus::Feature2D::GLCM_HOM2,		// Homogeneity-2 (PyR)
+		Nyxus::Feature2D::GLCM_ID,		// Inv diff, IBSI # IB1Z
+		Nyxus::Feature2D::GLCM_IDN,		// Inv diff normalized, IBSI # NDRX
+		Nyxus::Feature2D::GLCM_IDM,		// Inv diff mom, IBSI # WF0Z
+		Nyxus::Feature2D::GLCM_IDMN,		// Inv diff mom normalized, IBSI # 1QCO
+		Nyxus::Feature2D::GLCM_INFOMEAS1,	// Information measure of correlation 1, IBSI # R8DG
+		Nyxus::Feature2D::GLCM_INFOMEAS2,	// Information measure of correlation 2, IBSI # JN9H
+		Nyxus::Feature2D::GLCM_IV,		// Inv variance, IBSI # E8JP
+		Nyxus::Feature2D::GLCM_JAVE,		// Joint average, IBSI # 60VM
+		Nyxus::Feature2D::GLCM_JE,		// Joint entropy, IBSI # TU9B
+		Nyxus::Feature2D::GLCM_JMAX,		// Joint max (aka PyR max probability), IBSI # GYBY
+		Nyxus::Feature2D::GLCM_JVAR,		// Joint var (aka PyR Sum of Squares), IBSI # UR99
+		Nyxus::Feature2D::GLCM_SUMAVERAGE,	// Sum average, IBSI # ZGXS
+		Nyxus::Feature2D::GLCM_SUMENTROPY,	// Sum entropy, IBSI # P6QZ
+		Nyxus::Feature2D::GLCM_SUMVARIANCE,	// Sum variance, IBSI # OEEB
+		Nyxus::Feature2D::GLCM_VARIANCE,	// Variance
+		Nyxus::Feature2D::GLCM_ASM_AVE,
+		Nyxus::Feature2D::GLCM_ACOR_AVE,
+		Nyxus::Feature2D::GLCM_CLUPROM_AVE,
+		Nyxus::Feature2D::GLCM_CLUSHADE_AVE,
+		Nyxus::Feature2D::GLCM_CLUTEND_AVE,
+		Nyxus::Feature2D::GLCM_CONTRAST_AVE,
+		Nyxus::Feature2D::GLCM_CORRELATION_AVE,
+		Nyxus::Feature2D::GLCM_DIFAVE_AVE,
+		Nyxus::Feature2D::GLCM_DIFENTRO_AVE,
+		Nyxus::Feature2D::GLCM_DIFVAR_AVE,
+		Nyxus::Feature2D::GLCM_DIS_AVE,
+		Nyxus::Feature2D::GLCM_ENERGY_AVE,
+		Nyxus::Feature2D::GLCM_ENTROPY_AVE,
+		Nyxus::Feature2D::GLCM_HOM1_AVE,
+		Nyxus::Feature2D::GLCM_ID_AVE,
+		Nyxus::Feature2D::GLCM_IDN_AVE,
+		Nyxus::Feature2D::GLCM_IDM_AVE,
+		Nyxus::Feature2D::GLCM_IDMN_AVE,
+		Nyxus::Feature2D::GLCM_IV_AVE,
+		Nyxus::Feature2D::GLCM_JAVE_AVE,
+		Nyxus::Feature2D::GLCM_JE_AVE,
+		Nyxus::Feature2D::GLCM_INFOMEAS1_AVE,
+		Nyxus::Feature2D::GLCM_INFOMEAS2_AVE,
+		Nyxus::Feature2D::GLCM_VARIANCE_AVE,
+		Nyxus::Feature2D::GLCM_JMAX_AVE,
+		Nyxus::Feature2D::GLCM_JVAR_AVE,
+		Nyxus::Feature2D::GLCM_SUMAVERAGE_AVE,
+		Nyxus::Feature2D::GLCM_SUMENTROPY_AVE,
+		Nyxus::Feature2D::GLCM_SUMVARIANCE_AVE
+	};
+
+	// Features implemented by this class that do not require vector-like angled output. Instead, they are output as a single values
+	const constexpr static std::initializer_list<Nyxus::Feature2D> nonAngledFeatures =
+	{
+		Nyxus::Feature2D::GLCM_ASM_AVE,
+		Nyxus::Feature2D::GLCM_ACOR_AVE,
+		Nyxus::Feature2D::GLCM_CLUPROM_AVE,
+		Nyxus::Feature2D::GLCM_CLUSHADE_AVE,
+		Nyxus::Feature2D::GLCM_CLUTEND_AVE,
+		Nyxus::Feature2D::GLCM_CONTRAST_AVE,
+		Nyxus::Feature2D::GLCM_CORRELATION_AVE,
+		Nyxus::Feature2D::GLCM_DIFAVE_AVE,
+		Nyxus::Feature2D::GLCM_DIFENTRO_AVE,
+		Nyxus::Feature2D::GLCM_DIFVAR_AVE,
+		Nyxus::Feature2D::GLCM_DIS_AVE,
+		Nyxus::Feature2D::GLCM_ENERGY_AVE,
+		Nyxus::Feature2D::GLCM_ENTROPY_AVE,
+		Nyxus::Feature2D::GLCM_HOM1_AVE,
+		Nyxus::Feature2D::GLCM_ID_AVE,
+		Nyxus::Feature2D::GLCM_IDN_AVE,
+		Nyxus::Feature2D::GLCM_IDM_AVE,
+		Nyxus::Feature2D::GLCM_IDMN_AVE,
+		Nyxus::Feature2D::GLCM_IV_AVE,
+		Nyxus::Feature2D::GLCM_JAVE_AVE,
+		Nyxus::Feature2D::GLCM_JE_AVE,
+		Nyxus::Feature2D::GLCM_INFOMEAS1_AVE,
+		Nyxus::Feature2D::GLCM_INFOMEAS2_AVE,
+		Nyxus::Feature2D::GLCM_VARIANCE_AVE,
+		Nyxus::Feature2D::GLCM_JMAX_AVE,
+		Nyxus::Feature2D::GLCM_JVAR_AVE,
+		Nyxus::Feature2D::GLCM_SUMAVERAGE_AVE,
+		Nyxus::Feature2D::GLCM_SUMENTROPY_AVE,
+		Nyxus::Feature2D::GLCM_SUMVARIANCE_AVE
+	};
+
+	static int offset;	// default value: 1
+	static int n_levels;	// default value: 0
+	static bool symmetric_glcm;	// default value: false
+	static std::vector<int> angles;	// default value: {0,45,90,135} (the supreset)
+	double sum_p = 0; // sum of P matrix for normalization
+
+	static bool required(const FeatureSet& fs)
+	{
+		return fs.anyEnabled(GLCMFeature::featureset);
 	}
 
 	GLCMFeature();
@@ -55,11 +137,12 @@ public:
 	void osized_add_online_pixel(size_t x, size_t y, uint32_t intensity);
 	void osized_calculate(LR& r, ImageLoader& imloader);
 	void save_value(std::vector<std::vector<double>>& feature_vals);
+	static void extract (LR& roi);
 	static void parallel_process_1_batch(size_t start, size_t end, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData);
 
 private:
 
-	void Extract_Texture_Features2_NT (int angle, WriteImageMatrix_nontriv& grays, PixIntens min_val, PixIntens max_val);
+	void Extract_Texture_Features2_NT(int angle, WriteImageMatrix_nontriv& grays, PixIntens min_val, PixIntens max_val);
 	void calculateCoocMatAtAngle_NT(
 		// out
 		SimpleMatrix<double>& matrix,
@@ -71,26 +154,19 @@ private:
 		PixIntens max_val,
 		bool normalize);
 
-	void Extract_Texture_Features(
-		int distance,
-		int angle,
-		const SimpleMatrix<uint8_t>& grays);	// 'grays' is 0-255 grays 
 	void Extract_Texture_Features2 (int angle, const ImageMatrix& grays, PixIntens min_val, PixIntens max_val);
 
-	void calculate_normalized_graytone_matrix (SimpleMatrix<uint8_t>& G, int minI, int maxI, const ImageMatrix& Im);
-	void calculate_normalized_graytone_matrix (OOR_ReadMatrix& G, int minI, int maxI, const ImageMatrix& Im);
-
-	void calculateCoocMatAtAngle (
+	void calculateCoocMatAtAngle(
 		// out
 		SimpleMatrix<double>& p_matrix,
 		// in
 		int dx, int dy,
 		const ImageMatrix& grays,
 		PixIntens min_val,
-		PixIntens max_val, 
-		bool normalize);
+		PixIntens max_val);
 
 	void calculatePxpmy();
+	void calculate_by_row_mean();
 
 	static inline int cast_to_range(PixIntens orig_I, PixIntens min_orig_I, PixIntens max_orig_I, int min_target_I, int max_target_I)
 	{
@@ -98,51 +174,88 @@ private:
 		return target_I;
 	}
 
-	double f_asm (const SimpleMatrix<double>& P_matrix, int tone_count);	
-	double f_contrast (const SimpleMatrix<double>& P_matix, int tone_count);	
-	double f_corr (const SimpleMatrix<double>& P_matrix, int tone_count, std::vector<double>& px);
-	double f_var (const SimpleMatrix<double>& P_matrix, int tone_count);
-	double f_idm (const SimpleMatrix<double>& P_matrix, int tone_count);
-	double f_savg (const SimpleMatrix<double>& P_matrix, int tone_count, std::vector<double>& px);
-	double f_sentropy (const SimpleMatrix<double>& P_matrix, int tone_count, std::vector<double>& px);
-	double f_svar (const SimpleMatrix<double>& P_matrix, int tone_count, double sum_entropy, std::vector<double>& px);
-	double f_entropy (const SimpleMatrix<double>& P_matrix, int tone_count);	
-	double f_dvar (const SimpleMatrix<double>& P_matrix, int tone_count, std::vector<double>& px);
-	double f_dentropy (const SimpleMatrix<double>& P_matrix, int tone_count, std::vector<double>& px);
+	double f_asm(const SimpleMatrix<double>& P_matrix);
+	double f_contrast(const SimpleMatrix<double>& P_matix);
+	double f_corr();
+	double f_var(const SimpleMatrix<double>& P_matrix);
+	double f_idm();
+	double f_savg();
+	double f_sentropy();
+	double f_svar(const SimpleMatrix<double>& P_matrix, double sum_entropy);
+	double f_entropy(const SimpleMatrix<double>& P_matrix);
+	double f_dvar(const SimpleMatrix<double>& P_matrix);
+	double f_dentropy(const SimpleMatrix<double>& P_matrix);
+	double f_GLCM_ACOR(const SimpleMatrix<double>& P_matrix);
+	double f_GLCM_CLUPROM();
+	double f_GLCM_CLUSHADE();
+	double f_GLCM_CLUTEND();
+	double f_GLCM_DIS(const SimpleMatrix<double>& P_matrix);
+	double f_GLCM_HOM2(const SimpleMatrix<double>& P_matrix);
+	double f_GLCM_IDMN();
+	double f_GLCM_ID();
+	double f_GLCM_IDN();
+	double f_GLCM_IV();
+	double f_GLCM_JAVE();
+	double f_GLCM_JE(const SimpleMatrix<double>& P_matrix);
+	double f_GLCM_JMAX(const SimpleMatrix<double>& P_matrix);
+	double f_GLCM_JVAR(const SimpleMatrix<double>& P_matrix, double mean_x);
 
+	double calc_ave(const std::vector<double>& angled_feature_vals);
+
+	using AngledFeatures = std::vector<double>;
 	void copyfvals(AngledFeatures& dst, const AngledFeatures& src);
 
+	// Angled feature values. Each vector contains 1 to 4 values corresponding to angles 0, 45, 90, and 135 degrees
 	std::vector<double> fvals_ASM,
+		fvals_acor,
+		fvals_cluprom,
+		fvals_clushade,
+		fvals_clutend,
 		fvals_contrast,
 		fvals_correlation,
-		fvals_energy,
-		fvals_homo,
-		fvals_variance,
-		fvals_IDM,
-		fvals_sum_avg,
-		fvals_sum_var,
-		fvals_sum_entropy,
-		fvals_entropy,
 		fvals_diff_avg,
 		fvals_diff_var,
 		fvals_diff_entropy,
+		fvals_dis,
+		fvals_energy,
+		fvals_entropy,
+		fvals_homo,
+		fvals_hom2,
+		fvals_id,
+		fvals_idn,
+		fvals_IDM,
+		fvals_idmn,
 		fvals_meas_corr1,
 		fvals_meas_corr2,
-		fvals_max_corr_coef;
+		fvals_iv,
+		fvals_jave,
+		fvals_je,
+		fvals_jmax,
+		fvals_jvar,
+		fvals_sum_avg,
+		fvals_sum_var,
+		fvals_sum_entropy,
+		fvals_variance;
+
+	void clear_result_buffers();
 
 	double hx = -1, hy = -1, hxy = -1, hxy1 = -1, hxy2 = -1;	// Entropies for f12/f13_icorr calculation
-	void calcH (const SimpleMatrix<double>& P_matrix, int tone_count, std::vector<double>& px, std::vector<double>& py);
-	double f_info_meas_corr1 (const SimpleMatrix<double>& P_matrix, int tone_count, std::vector<double>& px, std::vector<double>& py);
-	double f_info_meas_corr2 (const SimpleMatrix<double>& P_matrix, int tone_count, std::vector<double>& px, std::vector<double>& py);
+	void calcH(const SimpleMatrix<double>& P_matrix, std::vector<double>& px, std::vector<double>& py);
+	double f_info_meas_corr1(const SimpleMatrix<double>& P_matrix);
+	double f_info_meas_corr2(const SimpleMatrix<double>& P_matrix);
 
-	double f_energy (const SimpleMatrix<double>& P_matrix, int tone_count, std::vector<double>& px);
-	double f_inv_difference (const SimpleMatrix<double>& P_matrix, int tone_count, std::vector<double>& px);
-	double f_homogeneity (const SimpleMatrix<double>& P_matrix, int tone_count, std::vector<double>& px);
-	double f_difference_avg (const SimpleMatrix<double>& P_matrix, int tone_count, std::vector<double>& px);
+	double f_energy(const SimpleMatrix<double>& P_matrix);
+	double f_inv_difference(const SimpleMatrix<double>& P_matrix);
+	double f_homogeneity();
+	double f_difference_avg();
 
 	const double LOG10_2 = 0.30102999566;	// precalculated log 2 base 10
 	SimpleMatrix<double> P_matrix;
-	std::vector<double> Pxpy, Pxmy;
+	std::vector<PixIntens> I;	// unique sorted intensities
+	std::vector<double> Pxpy,
+		Pxmy,
+		kValuesSum,	// intensities x+y
+		kValuesDiff;	// intensities x-y
+	double by_row_mean;
 	const double EPSILON = 0.000000001;
 };
-

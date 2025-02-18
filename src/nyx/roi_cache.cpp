@@ -1,5 +1,26 @@
+#include <limits.h>
 #include "globals.h"
 #include "roi_cache.h"
+
+std::vector<SlideProps> LR::dataset_props;
+size_t LR::dataset_max_combined_roicloud_len = 0;
+size_t LR::dataset_max_n_rois = 0;
+size_t LR::dataset_max_roi_area = 0;
+size_t LR::dataset_max_roi_w = 0;
+size_t LR::dataset_max_roi_h = 0;
+PixIntens LR::slide_min_inten = 0;
+PixIntens LR::slide_max_inten = 0;
+
+void LR::reset_dataset_props()
+{
+	dataset_props.clear();
+}
+
+void LR::reset_global_stats()
+{
+	LR::slide_min_inten = UINT_MAX;
+	LR::slide_max_inten = 0;
+}
 
 LR::LR()
 {}
@@ -14,10 +35,20 @@ bool LR::nontrivial_roi (size_t memory_limit)
 size_t LR::get_ram_footprint_estimate()
 {
 	size_t sz =
-		Nyxus::AvailableFeatures::_COUNT_ * 10 * sizeof(double) + // feature values (approximately 10 each)
+		int(Nyxus::FeatureIMQ::_COUNT_) * 10 * sizeof(double) + // feature values (approximately 10 each)
 		aabb.get_width() * aabb.get_height() * sizeof(Pixel2) +	// image matrix
 		aux_area * sizeof(Pixel2) +	// raw pixels
-		(uniqueLabels.size() - 1) * sizeof(int);	// neighbors
+		(Nyxus::uniqueLabels.size() - 1) * sizeof(int);	// neighbors
+	return sz;
+}
+
+size_t LR::get_ram_footprint_estimate_3D()
+{
+	size_t sz =
+		int(Nyxus::FeatureIMQ::_COUNT_) * 10 * sizeof(double) + // feature values (approximately 10 each)
+		aabb.get_width() * aabb.get_height() * aabb.get_z_depth() * sizeof(Pixel2) +	// image matrix
+		aux_area * sizeof(Pixel2) +	// raw pixels
+		(Nyxus::uniqueLabels.size() - 1) * sizeof(int);	// neighbors
 	return sz;
 }
 
@@ -64,14 +95,14 @@ void LR::clear_pixels_cache()
 	recycle_aux_obj(RAW_PIXELS);
 }
 
-std::vector<StatsReal> LR::get_fvals(AvailableFeatures af)
+std::vector<StatsReal> LR::get_fvals (int fcode) const
 {
-	return fvals[af];
+	return fvals[fcode];
 }
 
 void LR::initialize_fvals()
 {
-	fvals.resize(AvailableFeatures::_COUNT_);
+	fvals.resize ((int)Nyxus::FeatureIMQ::_COUNT_);
 	for (auto& valVec : fvals)
 		valVec.push_back(0.0);
 }

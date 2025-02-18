@@ -13,6 +13,24 @@
   error "Missing the <filesystem> header."
 #endif
 
+std::map <std::string, double> Stopwatch::totals;
+bool Stopwatch::inclusive_ = true;
+
+bool Stopwatch::exclusive() 
+{ 
+	return !inclusive_; 
+}
+
+bool Stopwatch::inclusive()
+{
+	return inclusive_;
+}
+
+void Stopwatch::set_inclusive(bool incl)
+{
+	inclusive_ = incl;
+}
+
 Stopwatch::Stopwatch (const std::string& header_, const std::string& tail_)
 {
 	header = header_;
@@ -23,15 +41,20 @@ Stopwatch::Stopwatch (const std::string& header_, const std::string& tail_)
 
 	start = std::chrono::system_clock::now();
 	if (header.length() > 0)
-		VERBOSLVL1(std::cout << header << "\n";)
+		VERBOSLVL2(std::cout << header << "\n";)
 }
 
 Stopwatch::~Stopwatch()
 {
 	end = std::chrono::system_clock::now();
 	std::chrono::duration<double, Unit> elap = end - start;
-	VERBOSLVL1(std::cout << tail << " " << elap.count() << " us\n"; )
+	VERBOSLVL2(std::cout << tail << " " << elap.count() << " us\n"; )
 		totals[header] = totals[header] + elap.count();
+}
+
+void Stopwatch::reset() 
+{ 
+	totals.clear(); 
 }
 
 void Stopwatch::print_stats()
@@ -40,12 +63,12 @@ void Stopwatch::print_stats()
 	for (auto& t : totals)
 		total += t.second;
 
-	std::cout << "--------------------\nTotal time of all feature groups [sec] = " << total/1e6 << "\nBreak-down:\n--------------------\n";
+	std::cout << "--------------------\nTotal time of all feature groups [s] = " << total/1e6 << "\nBreak-down:\n--------------------\n";
 
 	for (auto& t : totals)
 	{
 		double perc = t.second * 100.0 / total;
-		std::cout << t.first << "\t" << Nyxus::round2(perc) << "%\t" << t.second << "\n";
+		std::cout << std::setw(30) << t.first << "\t" << Nyxus::round2(perc) << "%\t" << t.second << "\n";
 	}
 
 	std::cout << "--------------------\n";
@@ -102,7 +125,7 @@ void Stopwatch::save_stats (const std::string & fpath)
 	f << _quote_ << "h1" << _quote_ << _comma_
 		<< _quote_ << "h2" << _quote_ << _comma_
 		<< _quote_ << "h3" << _quote_ << _comma_
-		<< _quote_ << "share%" << _quote_ << _comma_
+		<< _quote_ << "weight" << _quote_ << _comma_
 		<< _quote_ << "color" << _quote_ << _comma_
 		<< _quote_ << "codes" << _quote_ << _comma_
 		<< _quote_ << "rawtime" << _quote_ << _comma_
@@ -148,6 +171,8 @@ void Stopwatch::save_stats (const std::string & fpath)
 		for (std::string & rhs : vals)
 			f << _quote_ << rhs << _quote_ << _comma_;		
 
+	// Additional timig info (uncomment on necessity)
+	/*
 	f << _quote_ << "Total" << _quote_ << _comma_ 
 		<< _quote_ << "All" << _quote_ << _comma_
 		<< _quote_ << "All" << _quote_ << _comma_
@@ -158,10 +183,22 @@ void Stopwatch::save_stats (const std::string & fpath)
 		<< _quote_ << totTime << _quote_ << _comma_
 		<< _quote_ << Nyxus::theEnvironment.n_reduce_threads << _quote_ 
 		<< "\n";
+	*/
 }
 
 namespace Nyxus
 {
+	std::time_t getCurTime()
+	{
+		return std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	}
+
+	// returns seconds
+	double getTimeDiff (std::time_t beg, std::time_t end)
+	{
+		return std::difftime (end, beg);
+	}
+
 	// Requires:
 	//		#define _CRT_SECURE_NO_WARNINGS
 	//		#include <ctime>
@@ -170,12 +207,10 @@ namespace Nyxus
 	//		time_t my_time = time(NULL);
 	//		printf("Started at %s", ctime(&my_time));
 	//
-	std::string getTimeStr(const std::string& head /*= ""*/, const std::string& tail /*= ""*/)
+	std::string getTimeStr (std::time_t t)
 	{
-		std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-
 		std::string s(30, '\0');
-		std::strftime(&s[0], s.size(), "%Y-%m-%d %H:%M:%S", std::localtime(&now));
+		std::strftime(&s[0], s.size(), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
 		return s;
 	}
 }

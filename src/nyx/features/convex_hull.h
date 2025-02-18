@@ -8,6 +8,17 @@
 class ConvexHullFeature : public FeatureMethod
 {
 public:
+
+	const constexpr static std::initializer_list<Nyxus::Feature2D> featureset =
+	{
+			Nyxus::Feature2D::CONVEX_HULL_AREA,
+			Nyxus::Feature2D::SOLIDITY,
+			Nyxus::Feature2D::CIRCULARITY,
+			Nyxus::Feature2D::POLYGONALITY_AVE,
+			Nyxus::Feature2D::HEXAGONALITY_AVE,
+			Nyxus::Feature2D::HEXAGONALITY_STDDEV
+	};
+
 	ConvexHullFeature();
 
 	// Trivial ROI
@@ -20,7 +31,12 @@ public:
 	void cleanup_instance();
 
 	// Support of manual reduce
-	static bool required(const FeatureSet& fs) { return fs.anyEnabled ({ CONVEX_HULL_AREA, SOLIDITY, CIRCULARITY }); }
+	static bool required(const FeatureSet& fs) 
+	{ 
+		return fs.anyEnabled (ConvexHullFeature::featureset); 
+	}
+
+	static void extract(LR& roi); // extracts the feature of- and saves to ROI
 
 private:
 	void build_convex_hull(const std::vector<Pixel2>& contour, std::vector<Pixel2>& convhull);

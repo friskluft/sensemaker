@@ -12,6 +12,9 @@
 class EulerNumberFeature: public FeatureMethod
 {
 public:
+
+	const constexpr static std::initializer_list<Nyxus::Feature2D> featureset = { Nyxus::Feature2D::EULER_NUMBER };
+
 	EulerNumberFeature();
 	
 	// Trivial ROI
@@ -24,8 +27,9 @@ public:
 	// Result saver
 	void save_value (std::vector<std::vector<double>>& feature_vals);
 
+	static void extract (LR& roi); // extracts the feature of- and saves to ROI
 	static void reduce (size_t start, size_t end, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData);
-	static bool required (const FeatureSet& fs) { return fs.isEnabled(EULER_NUMBER); }
+	static bool required (const FeatureSet& fs) { return fs.isEnabled(Nyxus::Feature2D::EULER_NUMBER); }
 
 private:
 	const int mode = 8;		// Using mode=8 following WNDCHRM example

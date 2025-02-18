@@ -26,28 +26,35 @@
 #include <stdio.h>
 #include "specfunc.h" 
 
+#include "../environment.h"
 #include "image_matrix.h" 
 
 #include <unordered_map>
 #include "../roi_cache.h"
 #include "zernike.h"
 
-int ZernikeFeature::num_feature_values_calculated = 0;
+using namespace Nyxus;
+
+#ifdef ZERNIKE_OF_BINARY
+#define INTEN(x) x != 0 ? 1.0 : 0
+#else
+#define INTEN(x) x
+#endif
 
 ZernikeFeature::ZernikeFeature() : FeatureMethod("ZernikeFeature")
 {
-	provide_features ({ ZERNIKE2D });
+	provide_features ({ Feature2D::ZERNIKE2D });
 }
 
 void ZernikeFeature::osized_add_online_pixel (size_t x, size_t y, uint32_t intensity) {} // Not supporting
 
 void ZernikeFeature::save_value (std::vector<std::vector<double>>& fvals)
 {
-	fvals[ZERNIKE2D].clear();
-	for (int i=0; i<ZernikeFeature::num_feature_values_calculated; i++)
+	fvals[(int)Feature2D::ZERNIKE2D].clear();
+	for (int i=0; i<ZernikeFeature::NUM_FEATURE_VALS; i++)
 	{
 		auto f = coeffs[i];
-		fvals[ZERNIKE2D].push_back(f);
+		fvals[(int)Feature2D::ZERNIKE2D].push_back(f);
 	}
 }
 
@@ -166,7 +173,7 @@ void ZernikeFeature::mb_Znl (double* X, double* Y, double* P, int size, double D
   where zernike features are useful.
 */
 
-void ZernikeFeature::mb_zernike2D (const ImageMatrix& Im, double order, double rad, double* zvalues, long* output_size) 
+void ZernikeFeature::mb_zernike2D (const ImageMatrix& Im, double order, double rad, double* zvalues) 
 {
 	int cols = Im.width;
 	int rows = Im.height;
@@ -211,7 +218,7 @@ void ZernikeFeature::mb_zernike2D (const ImageMatrix& Im, double order, double r
 		{
 			if (std::isnan((double)I_pix_plane.yx(j, i))) 
 				continue; //MM
-			intensity = I_pix_plane.yx(j, i);
+			intensity = INTEN(I_pix_plane.yx(j,i));
 			sum += intensity;
 			moment10 += (i + 1) * intensity;
 			moment00 += intensity;
@@ -281,7 +288,7 @@ void ZernikeFeature::mb_zernike2D (const ImageMatrix& Im, double order, double r
 			// compute contribution to Zernike moments for all 
 			// orders and repetitions by the pixel at (i,j)
 			// In the paper, the intensity was the raw image intensity
-			f = I_pix_plane.yx(j, i) / sum;
+			f = INTEN(I_pix_plane.yx(j,i)) / sum;
 
 			Rnmp2 = Rnm2 = 0;
 			for (n = 0; n <= L; n++) 
@@ -333,18 +340,29 @@ void ZernikeFeature::mb_zernike2D (const ImageMatrix& Im, double order, double r
 			}
 		}
 	}
-	*output_size = numZ;
 }
 
 void ZernikeFeature::calculate (LR& r)
 {
+	// intercept blank ROIs
+	if (r.aux_min == r.aux_max)
+	{
+		coeffs.resize (ZernikeFeature::NUM_FEATURE_VALS, theEnvironment.nan_substitute);
+		return;
+	}
+
 	// Allocate the results buffer
 	coeffs.resize (ZernikeFeature::NUM_FEATURE_VALS, 0);
 
 	// Calculate features
-	long output_size;   // output size is normally 72 (NUM_FEATURE_VALS)
-	mb_zernike2D (r.aux_image_matrix, ZernikeFeature::ZERNIKE2D_ORDER, 0/*rad*/, coeffs.data(), &output_size);
-	ZernikeFeature::num_feature_values_calculated = output_size;
+	mb_zernike2D (r.aux_image_matrix, ZernikeFeature::ZERNIKE2D_ORDER, 0/*rad*/, coeffs.data());
+}
+
+void ZernikeFeature::extract (LR& r)
+{
+	ZernikeFeature f;
+	f.calculate (r);
+	f.save_value(r.fvals);
 }
 
 void ZernikeFeature::parallel_process_1_batch (size_t firstitem, size_t lastitem, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData)
@@ -353,10 +371,7 @@ void ZernikeFeature::parallel_process_1_batch (size_t firstitem, size_t lastitem
 	{
 		int lab = (*ptrLabels)[i];
 		LR& r = (*ptrLabelData)[lab];
-
-		ZernikeFeature f;
-		f.calculate (r);
-		f.save_value(r.fvals);
+		extract (r);
 	}
 }
 

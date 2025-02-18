@@ -9,16 +9,31 @@
 class ErosionPixelsFeature: public FeatureMethod
 {
 public:
+	const constexpr static std::initializer_list<Nyxus::Feature2D> featureset =
+	{
+		Nyxus::Feature2D::EROSIONS_2_VANISH, 
+		Nyxus::Feature2D::EROSIONS_2_VANISH_COMPLEMENT
+	};
+
 	ErosionPixelsFeature();
 
 	void calculate(LR& r);
 	void osized_add_online_pixel(size_t x, size_t y, uint32_t intensity);
 	void osized_calculate(LR& r, ImageLoader& imloader);
 	void save_value(std::vector<std::vector<double>>& feature_vals);
+	static void extract (LR& roi);
 	static void parallel_process_1_batch(size_t start, size_t end, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData);
 
-	static bool required(FeatureSet& fs) { return fs.anyEnabled({ EROSIONS_2_VANISH, EROSIONS_2_VANISH_COMPLEMENT }); }
-	
+#ifdef USE_GPU
+	/// @brief Calculates the features for all the ROIs in a single thread (for calculating via GPU) 
+	/// @param ptrLabels ROI label vector
+	/// @param ptrLabelData ROI data
+	static void gpu_process_all_rois (const std::vector<int>& L, std::unordered_map <int, LR>& RoiData, size_t batch_offset, size_t batch_len);
+	static void calculate_via_gpu (LR& r, size_t roi_index, int max_n_erosions, int& fval);
+#endif // USE_GPU
+
+	static bool required(FeatureSet& fs) { return fs.anyEnabled({ Nyxus::Feature2D::EROSIONS_2_VANISH, Nyxus::Feature2D::EROSIONS_2_VANISH_COMPLEMENT }); }
+
 private:
 
 	const int SANITY_MAX_NUM_EROSIONS = 1000;	// Prevent infinite erosions

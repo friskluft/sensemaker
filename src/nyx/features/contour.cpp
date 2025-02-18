@@ -18,22 +18,176 @@
 #include "../parallel.h"
 
 #include "../environment.h"		// regular or whole slide mode
-
-
-
 #include "image_matrix_nontriv.h"
+
+using namespace Nyxus;
+
+bool ContourFeature::required(const FeatureSet& fs)
+{
+
+	return theFeatureSet.anyEnabled({
+		// own features
+		Feature2D::PERIMETER,
+		Feature2D::DIAMETER_EQUAL_PERIMETER,
+		Feature2D::EDGE_INTEGRATED_INTENSITY,
+		Feature2D::EDGE_MAX_INTENSITY,
+		Feature2D::EDGE_MIN_INTENSITY,
+		Feature2D::EDGE_MEAN_INTENSITY,
+		Feature2D::EDGE_STDDEV_INTENSITY,
+		// dependencies:
+		Feature2D::CONVEX_HULL_AREA, 
+		Feature2D::SOLIDITY,
+		Feature2D::CIRCULARITY,
+		// weighted spatial moments
+		Feature2D::WEIGHTED_SPAT_MOMENT_00,
+		Feature2D::WEIGHTED_SPAT_MOMENT_01,
+		Feature2D::WEIGHTED_SPAT_MOMENT_02,
+		Feature2D::WEIGHTED_SPAT_MOMENT_03,
+		Feature2D::WEIGHTED_SPAT_MOMENT_10,
+		Feature2D::WEIGHTED_SPAT_MOMENT_11,
+		Feature2D::WEIGHTED_SPAT_MOMENT_12,
+		Feature2D::WEIGHTED_SPAT_MOMENT_20,
+		Feature2D::WEIGHTED_SPAT_MOMENT_21,
+		Feature2D::WEIGHTED_SPAT_MOMENT_30,
+		// weighted central moments
+		Feature2D::WEIGHTED_CENTRAL_MOMENT_02,
+		Feature2D::WEIGHTED_CENTRAL_MOMENT_03,
+		Feature2D::WEIGHTED_CENTRAL_MOMENT_11,
+		Feature2D::WEIGHTED_CENTRAL_MOMENT_12,
+		Feature2D::WEIGHTED_CENTRAL_MOMENT_20,
+		Feature2D::WEIGHTED_CENTRAL_MOMENT_21,
+		Feature2D::WEIGHTED_CENTRAL_MOMENT_30,
+		// weighted normalized central moments
+		Feature2D::WT_NORM_CTR_MOM_02,
+		Feature2D::WT_NORM_CTR_MOM_03,
+		Feature2D::WT_NORM_CTR_MOM_11,
+		Feature2D::WT_NORM_CTR_MOM_12,
+		Feature2D::WT_NORM_CTR_MOM_20,
+		Feature2D::WT_NORM_CTR_MOM_21,
+		Feature2D::WT_NORM_CTR_MOM_30,
+		// weighted Hu's moments 1-7 
+		Feature2D::WEIGHTED_HU_M1,
+		Feature2D::WEIGHTED_HU_M2,
+		Feature2D::WEIGHTED_HU_M3,
+		Feature2D::WEIGHTED_HU_M4,
+		Feature2D::WEIGHTED_HU_M5,
+		Feature2D::WEIGHTED_HU_M6,
+		Feature2D::WEIGHTED_HU_M7,
+
+		// -- intensity raw moments
+		Nyxus::Feature2D::IMOM_RM_00,
+		Nyxus::Feature2D::IMOM_RM_01,
+		Nyxus::Feature2D::IMOM_RM_02,
+		Nyxus::Feature2D::IMOM_RM_03,
+		Nyxus::Feature2D::IMOM_RM_10,
+		Nyxus::Feature2D::IMOM_RM_11,
+		Nyxus::Feature2D::IMOM_RM_12,
+		Nyxus::Feature2D::IMOM_RM_13,
+		Nyxus::Feature2D::IMOM_RM_20,
+		Nyxus::Feature2D::IMOM_RM_21,
+		Nyxus::Feature2D::IMOM_RM_22,
+		Nyxus::Feature2D::IMOM_RM_23,
+		Nyxus::Feature2D::IMOM_RM_30,
+		// -- intensity central moments
+		Nyxus::Feature2D::IMOM_CM_00,
+		Nyxus::Feature2D::IMOM_CM_01,
+		Nyxus::Feature2D::IMOM_CM_02,
+		Nyxus::Feature2D::IMOM_CM_03,
+		Nyxus::Feature2D::IMOM_CM_10,
+		Nyxus::Feature2D::IMOM_CM_11,
+		Nyxus::Feature2D::IMOM_CM_12,
+		Nyxus::Feature2D::IMOM_CM_13,
+		Nyxus::Feature2D::IMOM_CM_20,
+		Nyxus::Feature2D::IMOM_CM_21,
+		Nyxus::Feature2D::IMOM_CM_22,
+		Nyxus::Feature2D::IMOM_CM_23,
+		Nyxus::Feature2D::IMOM_CM_30,
+		Nyxus::Feature2D::IMOM_CM_31,
+		Nyxus::Feature2D::IMOM_CM_32,
+		Nyxus::Feature2D::IMOM_CM_33,
+		// -- intensity normalized raw moments
+		Nyxus::Feature2D::IMOM_NRM_00,
+		Nyxus::Feature2D::IMOM_NRM_01,
+		Nyxus::Feature2D::IMOM_NRM_02,
+		Nyxus::Feature2D::IMOM_NRM_03,
+		Nyxus::Feature2D::IMOM_NRM_10,
+		Nyxus::Feature2D::IMOM_NRM_11,
+		Nyxus::Feature2D::IMOM_NRM_12,
+		Nyxus::Feature2D::IMOM_NRM_13,
+		Nyxus::Feature2D::IMOM_NRM_20,
+		Nyxus::Feature2D::IMOM_NRM_21,
+		Nyxus::Feature2D::IMOM_NRM_22,
+		Nyxus::Feature2D::IMOM_NRM_23,
+		Nyxus::Feature2D::IMOM_NRM_30,
+		Nyxus::Feature2D::IMOM_NRM_31,
+		Nyxus::Feature2D::IMOM_NRM_32,
+		Nyxus::Feature2D::IMOM_NRM_33,
+		// -- intensity normalized central moments
+		Nyxus::Feature2D::IMOM_NCM_02,
+		Nyxus::Feature2D::IMOM_NCM_03,
+		Nyxus::Feature2D::IMOM_NCM_11,
+		Nyxus::Feature2D::IMOM_NCM_12,
+		Nyxus::Feature2D::IMOM_NCM_20,
+		Nyxus::Feature2D::IMOM_NCM_21,
+		Nyxus::Feature2D::IMOM_NCM_30,
+		// -- intensity Hu's moments 1-7 
+		Nyxus::Feature2D::IMOM_HU1,
+		Nyxus::Feature2D::IMOM_HU2,
+		Nyxus::Feature2D::IMOM_HU3,
+		Nyxus::Feature2D::IMOM_HU4,
+		Nyxus::Feature2D::IMOM_HU5,
+		Nyxus::Feature2D::IMOM_HU6,
+		Nyxus::Feature2D::IMOM_HU7,
+		// -- intensity weighted raw moments
+		Nyxus::Feature2D::IMOM_WRM_00,
+		Nyxus::Feature2D::IMOM_WRM_01,
+		Nyxus::Feature2D::IMOM_WRM_02,
+		Nyxus::Feature2D::IMOM_WRM_03,
+		Nyxus::Feature2D::IMOM_WRM_10,
+		Nyxus::Feature2D::IMOM_WRM_11,
+		Nyxus::Feature2D::IMOM_WRM_12,
+		Nyxus::Feature2D::IMOM_WRM_20,
+		Nyxus::Feature2D::IMOM_WRM_21,
+		Nyxus::Feature2D::IMOM_WRM_30,
+		// -- intensity weighted central moments
+		Nyxus::Feature2D::IMOM_WCM_02,
+		Nyxus::Feature2D::IMOM_WCM_03,
+		Nyxus::Feature2D::IMOM_WCM_11,
+		Nyxus::Feature2D::IMOM_WCM_12,
+		Nyxus::Feature2D::IMOM_WCM_20,
+		Nyxus::Feature2D::IMOM_WCM_21,
+		Nyxus::Feature2D::IMOM_WCM_30,
+		// -- intensity weighted normalized central moments
+		Nyxus::Feature2D::IMOM_WNCM_02,
+		Nyxus::Feature2D::IMOM_WNCM_03,
+		Nyxus::Feature2D::IMOM_WNCM_11,
+		Nyxus::Feature2D::IMOM_WNCM_12,
+		Nyxus::Feature2D::IMOM_WNCM_20,
+		Nyxus::Feature2D::IMOM_WNCM_21,
+		Nyxus::Feature2D::IMOM_WNCM_30,
+		// -- intensity weighted Hu's moments 1-7 
+		Nyxus::Feature2D::IMOM_WHU1,
+		Nyxus::Feature2D::IMOM_WHU2,
+		Nyxus::Feature2D::IMOM_WHU3,
+		Nyxus::Feature2D::IMOM_WHU4,
+		Nyxus::Feature2D::IMOM_WHU5,
+		Nyxus::Feature2D::IMOM_WHU6,
+		Nyxus::Feature2D::IMOM_WHU7,
+
+		// misc
+		Feature2D::ROI_RADIUS_MEAN, 
+		Feature2D::ROI_RADIUS_MAX, 
+		Feature2D::ROI_RADIUS_MEDIAN,
+		Feature2D::FRAC_AT_D, 
+		Feature2D::MEAN_FRAC, 
+		Feature2D::RADIAL_CV
+		});
+
+}
 
 ContourFeature::ContourFeature() : FeatureMethod("ContourFeature")
 {
-	provide_features({ 
-		PERIMETER,
-		DIAMETER_EQUAL_PERIMETER,
-		EDGE_INTEGRATED_INTENSITY,
-		EDGE_MAX_INTENSITY,
-		EDGE_MIN_INTENSITY,
-		EDGE_MEAN_INTENSITY,
-		EDGE_STDDEV_INTENSITY 
-		});
+	provide_features (ContourFeature::featureset);
 }
 
 void ContourFeature::buildRegularContour(LR& r)
@@ -159,7 +313,7 @@ void ContourFeature::buildRegularContour(LR& r)
 						if (counter2 > 8)
 						{
 							// If counter2 is above 8, we have sought around the neighborhood and
-							// therefor the border is a single non-blank pixel, and we can exit
+							// therefore the border is a single non-blank pixel, and we can exit
 							counter2 = 0;
 							break;
 						}
@@ -200,8 +354,8 @@ void ContourFeature::buildRegularContour(LR& r)
 		std::cout << "\n\n\n";
 	);
 
-	//==== Remove padding and save the countour image as a vector of non-blank pixels
-	AABB & bb = r.aabb; // r.aux_image_matrix.original_aabb;
+	//==== Remove padding and save the contour image as a vector of non-blank pixels
+	AABB & bb = r.aabb;
 	int base_x = bb.get_xmin(),
 		base_y = bb.get_ymin();
 	r.contour.clear();
@@ -213,7 +367,7 @@ void ContourFeature::buildRegularContour(LR& r)
 			auto inte = borderImage[idx];
 			if (inte)
 			{
-				Pixel2 p(x, y, inte - 1);		// Undecorate the intesity		
+				Pixel2 p(x+base_x, y+base_x, inte-1);		// Cast pixel position from relative to absolute and undecorate its intensity
 				r.contour.push_back(p);
 			}
 		}
@@ -251,7 +405,7 @@ void ContourFeature::buildRegularContour(LR& r)
 			cands.push_back(px);
 		}
 
-		//	--are there any tip's neighbr candidate?
+		//	--are there any tip's neighbor candidate?
 		if (!cands.empty())
 		{
 			int distMin = pxTip.sqdist(cands[0]);
@@ -483,7 +637,7 @@ void ContourFeature::buildRegularContour_nontriv(LR& r)
 						if (counter2 > 8)
 						{
 							// If counter2 is above 8 we have traced around the neighborhood and
-							// therefor the border is a single black pixel and we can exit
+							// therefore the border is a single black pixel and we can exit
 							counter2 = 0;
 							break;
 						}
@@ -496,8 +650,8 @@ void ContourFeature::buildRegularContour_nontriv(LR& r)
 			}
 		}
 
-	//==== Remove padding and save the countour image as a vector of contour-onlu pixels
-	AABB& bb = r.aabb; // r.aux_image_matrix.original_aabb;
+	//==== Remove padding and save the contour image as a vector of contour-onlu pixels
+	AABB& bb = r.aabb;
 	int base_x = bb.get_xmin(),
 		base_y = bb.get_ymin();
 	r.contour.clear();
@@ -662,13 +816,13 @@ void ContourFeature::osized_calculate(LR& r, ImageLoader& imloader)
 
 void ContourFeature::save_value(std::vector<std::vector<double>>& fvals)
 {
-	fvals[PERIMETER][0] = fval_PERIMETER;
-	fvals[DIAMETER_EQUAL_PERIMETER][0] = fval_DIAMETER_EQUAL_PERIMETER;
-	fvals[EDGE_MEAN_INTENSITY][0] = fval_EDGE_MEAN_INTENSITY;
-	fvals[EDGE_STDDEV_INTENSITY][0] = fval_EDGE_STDDEV_INTENSITY;
-	fvals[EDGE_MAX_INTENSITY][0] = fval_EDGE_MAX_INTENSITY;
-	fvals[EDGE_MIN_INTENSITY][0] = fval_EDGE_MIN_INTENSITY;
-	fvals[EDGE_INTEGRATED_INTENSITY][0] = fval_EDGE_INTEGRATEDINTENSITY;
+	fvals[(int)Feature2D::PERIMETER][0] = fval_PERIMETER;
+	fvals[(int)Feature2D::DIAMETER_EQUAL_PERIMETER][0] = fval_DIAMETER_EQUAL_PERIMETER;
+	fvals[(int)Feature2D::EDGE_MEAN_INTENSITY][0] = fval_EDGE_MEAN_INTENSITY;
+	fvals[(int)Feature2D::EDGE_STDDEV_INTENSITY][0] = fval_EDGE_STDDEV_INTENSITY;
+	fvals[(int)Feature2D::EDGE_MAX_INTENSITY][0] = fval_EDGE_MAX_INTENSITY;
+	fvals[(int)Feature2D::EDGE_MIN_INTENSITY][0] = fval_EDGE_MIN_INTENSITY;
+	fvals[(int)Feature2D::EDGE_INTEGRATED_INTENSITY][0] = fval_EDGE_INTEGRATEDINTENSITY;
 }
 
 void ContourFeature::parallel_process(std::vector<int>& roi_labels, std::unordered_map <int, LR>& roiData, int n_threads)
@@ -697,6 +851,13 @@ std::tuple<double, double, double, double> ContourFeature::calc_min_max_mean_std
 		stddev_ = m.std();
 
 	return { min_, max_, mean_, stddev_ };
+}
+
+void ContourFeature::extract (LR& r)
+{
+	ContourFeature f;
+	f.calculate (r);
+	f.save_value (r.fvals);
 }
 
 void ContourFeature::reduce (size_t start, size_t end, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData)

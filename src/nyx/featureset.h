@@ -1,38 +1,46 @@
 #pragma once
 
 #include <map>
+#include <string>
 #include <vector>
 
 namespace Nyxus
 {
-	/// @brief Feature codes
-	enum AvailableFeatures
+	/// @brief Feature codes (2D)
+	enum class Feature2D
 	{
-		//==== 2D features
-		
-		// Pixel intensity stats
-		INTEGRATED_INTENSITY = 0,
-		MEAN,
-		MEDIAN,
-		MIN,
-		MAX,
-		RANGE,
-		STANDARD_DEVIATION,
-		STANDARD_ERROR,
-		SKEWNESS,
-		KURTOSIS,
-		HYPERSKEWNESS,
-		HYPERFLATNESS,
-		MEAN_ABSOLUTE_DEVIATION,
+		// Intensity
+		COV = 0,	// coefficient of variation
+		COVERED_IMAGE_INTENSITY_RANGE,
 		ENERGY,
-		ROOT_MEAN_SQUARED,
 		ENTROPY,
+		EXCESS_KURTOSIS,
+		HYPERFLATNESS,
+		HYPERSKEWNESS,
+		INTEGRATED_INTENSITY,
+		INTERQUARTILE_RANGE,
+		KURTOSIS,
+		MAX,
+		MEAN,
+		MEAN_ABSOLUTE_DEVIATION,
+		MEDIAN,
+		MEDIAN_ABSOLUTE_DEVIATION,
+		MIN,
 		MODE,
+		P01, P10, P25, P75, P90, P99,
+		QCOD,	// quantile coefficient of dispersion
+		RANGE,
+		ROBUST_MEAN,
+		ROBUST_MEAN_ABSOLUTE_DEVIATION,
+		ROOT_MEAN_SQUARED,
+		SKEWNESS,
+		STANDARD_DEVIATION,
+		STANDARD_DEVIATION_BIASED,
+		STANDARD_ERROR,
+		VARIANCE,
+		VARIANCE_BIASED,
 		UNIFORMITY,
 		UNIFORMITY_PIU,
-		P01, P10, P25, P75, P90, P99,
-		INTERQUARTILE_RANGE,
-		ROBUST_MEAN_ABSOLUTE_DEVIATION,
 
 		// Morphology:
 		AREA_PIXELS_COUNT,
@@ -41,7 +49,7 @@ namespace Nyxus
 		CENTROID_Y,
 		WEIGHTED_CENTROID_Y,
 		WEIGHTED_CENTROID_X,
-		MASS_DISPLACEMENT,		
+		MASS_DISPLACEMENT,
 		COMPACTNESS,
 		BBOX_YMIN,
 		BBOX_XMIN,
@@ -51,7 +59,7 @@ namespace Nyxus
 		EXTENT,
 		ASPECT_RATIO,
 		// -- Legendre inertia ellipse
-		MAJOR_AXIS_LENGTH,	
+		MAJOR_AXIS_LENGTH,
 		MINOR_AXIS_LENGTH,
 		// -- ellipticity related
 		ECCENTRICITY,
@@ -66,7 +74,7 @@ namespace Nyxus
 		EDGE_STDDEV_INTENSITY,
 		EDGE_MAX_INTENSITY,
 		EDGE_MIN_INTENSITY,
-		EDGE_INTEGRATED_INTENSITY,	
+		EDGE_INTEGRATED_INTENSITY,
 		CIRCULARITY,
 
 		// -- convex hull related
@@ -82,11 +90,8 @@ namespace Nyxus
 		FRACT_DIM_PERIMETER,
 
 		// Caliper:
-		MIN_FERET_DIAMETER,
-		MAX_FERET_DIAMETER,
 		MIN_FERET_ANGLE,
 		MAX_FERET_ANGLE,
-
 		STAT_FERET_DIAM_MIN,
 		STAT_FERET_DIAM_MAX,
 		STAT_FERET_DIAM_MEAN,
@@ -166,22 +171,66 @@ namespace Nyxus
 		ANG_BW_NEIGHBORS_MODE,
 
 		// GLCM:
-		GLCM_ANGULAR2NDMOMENT,
-		GLCM_CONTRAST,
-		GLCM_CORRELATION,
-		GLCM_DIFFERENCEAVERAGE,
-		GLCM_DIFFERENCEENTROPY,
-		GLCM_DIFFERENCEVARIANCE,
-		GLCM_ENERGY,
-		GLCM_ENTROPY,
-		GLCM_HOMOGENEITY,
-		GLCM_INFOMEAS1,
-		GLCM_INFOMEAS2,
-		GLCM_INVERSEDIFFERENCEMOMENT,
-		GLCM_SUMAVERAGE,
-		GLCM_SUMENTROPY,
-		GLCM_SUMVARIANCE,
+		GLCM_ASM,			// Angular second moment, IBSI # 8ZQL
+		GLCM_ACOR,			// Autocorrelation, IBSI # QWB0
+		GLCM_CLUPROM,		// Cluster prominence, IBSI # AE86
+		GLCM_CLUSHADE,		// Cluster shade, IBSI # 7NFM
+		GLCM_CLUTEND,		// Cluster tendency, IBSI # DG8W
+		GLCM_CONTRAST,		// Contrast, IBSI # ACUI
+		GLCM_CORRELATION,	// Correlation, IBSI # NI2N
+		GLCM_DIFAVE,		// Difference average, IBSI # TF7R
+		GLCM_DIFENTRO,		// Difference entropy, IBSI # NTRS
+		GLCM_DIFVAR,		// Difference variance, IBSI # D3YU
+		GLCM_DIS,			// Dissimilarity, IBSI # 8S9J
+		GLCM_ENERGY,		// Energy
+		GLCM_ENTROPY,		// Entropy
+		GLCM_HOM1,			// Homogeneity-1 (PyR)
+		GLCM_HOM2,			// Homogeneity-2 (PyR)
+		GLCM_ID,			// Inv diff, IBSI # IB1Z
+		GLCM_IDN,			// Inv diff normalized, IBSI # NDRX
+		GLCM_IDM,			// Inv diff mom, IBSI # WF0Z
+		GLCM_IDMN,			// Inv diff mom normalized, IBSI # 1QCO
+		GLCM_INFOMEAS1,		// Information measure of correlation 1, IBSI # R8DG
+		GLCM_INFOMEAS2,		// Information measure of correlation 2, IBSI # JN9H
+		GLCM_IV,			// Inv variance, IBSI # E8JP
+		GLCM_JAVE,			// Joint average, IBSI # 60VM
+		GLCM_JE,			// Joint entropy, IBSI # TU9B
+		GLCM_JMAX,			// Joint max (aka PyR max probability), IBSI # GYBY
+		GLCM_JVAR,			// Joint var (aka PyR Sum of Squares), IBSI # UR99
+		GLCM_SUMAVERAGE,	// Sum average, IBSI # ZGXS
+		GLCM_SUMENTROPY,	// Sum entropy, IBSI # P6QZ
+		GLCM_SUMVARIANCE,	// Sum variance, IBSI # OEEB
 		GLCM_VARIANCE,
+		// -- averages --
+		GLCM_ASM_AVE,
+		GLCM_ACOR_AVE,
+		GLCM_CLUPROM_AVE,
+		GLCM_CLUSHADE_AVE,
+		GLCM_CLUTEND_AVE,
+		GLCM_CONTRAST_AVE,
+		GLCM_CORRELATION_AVE,
+		GLCM_DIFAVE_AVE,
+		GLCM_DIFENTRO_AVE,
+		GLCM_DIFVAR_AVE,
+		GLCM_DIS_AVE,
+		GLCM_ENERGY_AVE,
+		GLCM_ENTROPY_AVE,
+		GLCM_HOM1_AVE,
+		GLCM_ID_AVE,
+		GLCM_IDN_AVE,
+		GLCM_IDM_AVE,
+		GLCM_IDMN_AVE,
+		GLCM_IV_AVE,
+		GLCM_JAVE_AVE,
+		GLCM_JE_AVE,
+		GLCM_INFOMEAS1_AVE,
+		GLCM_INFOMEAS2_AVE,
+		GLCM_VARIANCE_AVE,
+		GLCM_JMAX_AVE,
+		GLCM_JVAR_AVE,
+		GLCM_SUMAVERAGE_AVE,
+		GLCM_SUMENTROPY_AVE,
+		GLCM_SUMVARIANCE_AVE,
 
 		// GLRLM:
 		GLRLM_SRE,	// Short Run Emphasis 
@@ -200,6 +249,43 @@ namespace Nyxus
 		GLRLM_SRHGLE,	// Short Run High Gray Level Emphasis 
 		GLRLM_LRLGLE,	// Long Run Low Gray Level Emphasis 
 		GLRLM_LRHGLE,	// Long Run High Gray Level Emphasis 
+		// -- averages --
+		GLRLM_SRE_AVE,
+		GLRLM_LRE_AVE,
+		GLRLM_GLN_AVE,
+		GLRLM_GLNN_AVE,
+		GLRLM_RLN_AVE,
+		GLRLM_RLNN_AVE,
+		GLRLM_RP_AVE,
+		GLRLM_GLV_AVE,
+		GLRLM_RV_AVE,
+		GLRLM_RE_AVE,
+		GLRLM_LGLRE_AVE,
+		GLRLM_HGLRE_AVE,
+		GLRLM_SRLGLE_AVE,
+		GLRLM_SRHGLE_AVE,
+		GLRLM_LRLGLE_AVE,
+		GLRLM_LRHGLE_AVE,
+
+		// GLDZM:
+		GLDZM_SDE,		// Small Distance Emphasis
+		GLDZM_LDE,		// Large Distance Emphasis
+		GLDZM_LGLZE,	// Low Grey Level Zone Emphasis
+		GLDZM_HGLZE,	// High Grey Level Zone Emphasis
+		GLDZM_SDLGLE,	// Small Distance Low Grey Level Emphasis
+		GLDZM_SDHGLE,	// Small Distance High Grey Level Emphasis
+		GLDZM_LDLGLE,	// Large Distance Low Grey Level Emphasis
+		GLDZM_LDHGLE,	// Large Distance High Grey Level Emphasis
+		GLDZM_GLNU,		// Grey Level Non Uniformity
+		GLDZM_GLNUN,	// Grey Level Non Uniformity Normalized
+		GLDZM_ZDNU,		// Zone Distance Non Uniformity
+		GLDZM_ZDNUN,	// Zone Distance Non Uniformity Normalized
+		GLDZM_ZP,		// Zone Percentage
+		GLDZM_GLM,		// Grey Level Mean
+		GLDZM_GLV,		// Grey Level Variance
+		GLDZM_ZDM,		// Zone Distance Mean
+		GLDZM_ZDV,		// Zone Distance Variance
+		GLDZM_ZDE,		// Zone Distance Entropy
 
 		// GLSZM:
 		GLSZM_SAE,	// Small Area Emphasis
@@ -220,20 +306,41 @@ namespace Nyxus
 		GLSZM_LAHGLE,	// Large Area High Gray Level Emphasis
 
 		// GLDM:
-		GLDM_SDE,	// Small Dependence Emphasis(SDE)
-		GLDM_LDE,	// Large Dependence Emphasis (LDE)
-		GLDM_GLN,	// Gray Level Non-Uniformity (GLN)
-		GLDM_DN,	// Dependence Non-Uniformity (DN)
-		GLDM_DNN,	// Dependence Non-Uniformity Normalized (DNN)
-		GLDM_GLV,	// Gray Level Variance (GLV)
-		GLDM_DV,	// Dependence Variance (DV)
-		GLDM_DE,	// Dependence Entropy (DE)
-		GLDM_LGLE,	// Low Gray Level Emphasis (LGLE)
-		GLDM_HGLE,	// High Gray Level Emphasis (HGLE)
-		GLDM_SDLGLE,	// Small Dependence Low Gray Level Emphasis (SDLGLE)
-		GLDM_SDHGLE,	// Small Dependence High Gray Level Emphasis (SDHGLE)
-		GLDM_LDLGLE,	// Large Dependence Low Gray Level Emphasis (LDLGLE)
-		GLDM_LDHGLE,	// Large Dependence High Gray Level Emphasis (LDHGLE)
+		GLDM_SDE,		// Small Dependence Emphasis
+		GLDM_LDE,		// Large Dependence Emphasis
+		GLDM_GLN,		// Gray Level Non-Uniformity
+		GLDM_DN,		// Dependence Non-Uniformity
+		GLDM_DNN,		// Dependence Non-Uniformity Normalized
+		GLDM_GLV,		// Gray Level Variance
+		GLDM_DV,		// Dependence Variance
+		GLDM_DE,		// Dependence Entropy
+		GLDM_LGLE,		// Low Gray Level Emphasis
+		GLDM_HGLE,		// High Gray Level Emphasis
+		GLDM_SDLGLE,	// Small Dependence Low Gray Level Emphasis
+		GLDM_SDHGLE,	// Small Dependence High Gray Level Emphasis
+		GLDM_LDLGLE,	// Large Dependence Low Gray Level Emphasis
+		GLDM_LDHGLE,	// Large Dependence High Gray Level Emphasis
+
+		// NGLDM:
+		NGLDM_LDE,		// Low Dependence Emphasis (IBSI # SODN)
+		NGLDM_HDE,		// High Dependence Emphasis (IBSI # IMOQ)
+		NGLDM_LGLCE,	// Low Grey Level Count Emphasis (IBSI # TL9H)
+		NGLDM_HGLCE,	// High Grey Level Count Emphasis (IBSI # OAE7)
+		NGLDM_LDLGLE,	// Low Dependence Low Grey Level Emphasis (IBSI # EQ3F)
+		NGLDM_LDHGLE,	// Low Dependence High Grey Level Emphasis (IBSI # JA6D)
+		NGLDM_HDLGLE,	// High Dependence Low Grey Level Emphasis (IBSI # NBZI)
+		NGLDM_HDHGLE,	// High Dependence High Grey Level Emphasis (IBSI # 9QMG)
+		NGLDM_GLNU,		// Grey Level Non-Uniformity (IBSI # FP8K)
+		NGLDM_GLNUN,	// Grey Level Non-Uniformity Normalised (IBSI # 5SPA)
+		NGLDM_DCNU,		// Dependence Count Non-Uniformity (IBSI # Z87G)
+		NGLDM_DCNUN,	// Dependence Count Non-Uniformity Normalised (IBSI # OKJI)
+		NGLDM_DCP,		// Dependence Count Percentage (IBSI # 6XV8)
+		NGLDM_GLM,		// Grey Level Mean
+		NGLDM_GLV,		// Grey Level Variance (IBSI # 1PFV)
+		NGLDM_DCM,		// Dependence Count Mean
+		NGLDM_DCV,		// Dependence Count Variance (IBSI # DNX2)
+		NGLDM_DCENT,	// Dependence Count Entropy (IBSI # FCBV)
+		NGLDM_DCENE,	// Dependence Count Energy (IBSI # CAS9)
 
 		// NGTDM:
 		NGTDM_COARSENESS,
@@ -242,13 +349,16 @@ namespace Nyxus
 		NGTDM_COMPLEXITY,
 		NGTDM_STRENGTH,
 
-		// Radial intensity distribution:
-		ZERNIKE2D,
+		// Low-frequency intensity distribution:
 		FRAC_AT_D,
+		GABOR,
 		MEAN_FRAC,
 		RADIAL_CV,
-			
-		// Spatial (raw) moments
+		ZERNIKE2D,
+
+		// Shape geometric moments
+
+		// -- shape raw moments
 		SPAT_MOMENT_00,
 		SPAT_MOMENT_01,
 		SPAT_MOMENT_02,
@@ -256,11 +366,68 @@ namespace Nyxus
 		SPAT_MOMENT_10,
 		SPAT_MOMENT_11,
 		SPAT_MOMENT_12,
+		SPAT_MOMENT_13,
 		SPAT_MOMENT_20,
 		SPAT_MOMENT_21,
+		SPAT_MOMENT_22,
+		SPAT_MOMENT_23,
 		SPAT_MOMENT_30,
 
-		// Weighted spatial moments
+		// -- shape central moments
+		CENTRAL_MOMENT_00,
+		CENTRAL_MOMENT_01,
+		CENTRAL_MOMENT_02,
+		CENTRAL_MOMENT_03,
+		CENTRAL_MOMENT_10,
+		CENTRAL_MOMENT_11,
+		CENTRAL_MOMENT_12,
+		CENTRAL_MOMENT_13,
+		CENTRAL_MOMENT_20,
+		CENTRAL_MOMENT_21,
+		CENTRAL_MOMENT_22,
+		CENTRAL_MOMENT_23,
+		CENTRAL_MOMENT_30,
+		CENTRAL_MOMENT_31,
+		CENTRAL_MOMENT_32,
+		CENTRAL_MOMENT_33,
+
+		// -- shape normalized raw moments
+		NORM_SPAT_MOMENT_00,
+		NORM_SPAT_MOMENT_01,
+		NORM_SPAT_MOMENT_02,
+		NORM_SPAT_MOMENT_03,
+		NORM_SPAT_MOMENT_10,
+		NORM_SPAT_MOMENT_11,
+		NORM_SPAT_MOMENT_12,
+		NORM_SPAT_MOMENT_13,
+		NORM_SPAT_MOMENT_20,
+		NORM_SPAT_MOMENT_21,
+		NORM_SPAT_MOMENT_22,
+		NORM_SPAT_MOMENT_23,
+		NORM_SPAT_MOMENT_30,
+		NORM_SPAT_MOMENT_31,
+		NORM_SPAT_MOMENT_32,
+		NORM_SPAT_MOMENT_33,
+
+		// -- shape normalized central moments
+		NORM_CENTRAL_MOMENT_02,
+		NORM_CENTRAL_MOMENT_03,
+		NORM_CENTRAL_MOMENT_11,
+		NORM_CENTRAL_MOMENT_12,
+		NORM_CENTRAL_MOMENT_20,
+		NORM_CENTRAL_MOMENT_21,
+		NORM_CENTRAL_MOMENT_30,
+
+		// -- shape Hu's moments 1-7 
+		HU_M1,
+		HU_M2,
+		HU_M3,
+		HU_M4,
+		HU_M5,
+		HU_M6,
+		HU_M7,
+
+		// -- shape weighted raw moments
 		WEIGHTED_SPAT_MOMENT_00,
 		WEIGHTED_SPAT_MOMENT_01,
 		WEIGHTED_SPAT_MOMENT_02,
@@ -272,16 +439,7 @@ namespace Nyxus
 		WEIGHTED_SPAT_MOMENT_21,
 		WEIGHTED_SPAT_MOMENT_30,
 
-		// Central moments
-		CENTRAL_MOMENT_02,
-		CENTRAL_MOMENT_03,
-		CENTRAL_MOMENT_11,
-		CENTRAL_MOMENT_12,
-		CENTRAL_MOMENT_20,
-		CENTRAL_MOMENT_21,
-		CENTRAL_MOMENT_30,
-
-		// Weighted central moments
+		// -- shape weighted central moments
 		WEIGHTED_CENTRAL_MOMENT_02,
 		WEIGHTED_CENTRAL_MOMENT_03,
 		WEIGHTED_CENTRAL_MOMENT_11,
@@ -290,34 +448,16 @@ namespace Nyxus
 		WEIGHTED_CENTRAL_MOMENT_21,
 		WEIGHTED_CENTRAL_MOMENT_30,
 
-		// Normalized central moments
-		NORM_CENTRAL_MOMENT_02,
-		NORM_CENTRAL_MOMENT_03,
-		NORM_CENTRAL_MOMENT_11,
-		NORM_CENTRAL_MOMENT_12,
-		NORM_CENTRAL_MOMENT_20,
-		NORM_CENTRAL_MOMENT_21,
-		NORM_CENTRAL_MOMENT_30,
-
-		// Normalized (standardized) spatial moments
-		NORM_SPAT_MOMENT_00,
-		NORM_SPAT_MOMENT_01,
-		NORM_SPAT_MOMENT_02,
-		NORM_SPAT_MOMENT_03,
-		NORM_SPAT_MOMENT_10,
-		NORM_SPAT_MOMENT_20,
-		NORM_SPAT_MOMENT_30,
-
-		// Hu's moments 1-7 
-		HU_M1,
-		HU_M2,
-		HU_M3,
-		HU_M4,
-		HU_M5,
-		HU_M6,
-		HU_M7,
-
-		// Weighted Hu's moments 1-7 
+		// -- shape weighted normalized central moments
+		WT_NORM_CTR_MOM_02,
+		WT_NORM_CTR_MOM_03,
+		WT_NORM_CTR_MOM_11,
+		WT_NORM_CTR_MOM_12,
+		WT_NORM_CTR_MOM_20,
+		WT_NORM_CTR_MOM_21,
+		WT_NORM_CTR_MOM_30,
+			
+		// -- shape weighted Hu's moments 1-7 
 		WEIGHTED_HU_M1,
 		WEIGHTED_HU_M2,
 		WEIGHTED_HU_M3,
@@ -326,103 +466,607 @@ namespace Nyxus
 		WEIGHTED_HU_M6,
 		WEIGHTED_HU_M7,
 
-		GABOR,
+		// Intensity geometric moments
+
+		// -- intensity raw moments
+		IMOM_RM_00,
+		IMOM_RM_01,
+		IMOM_RM_02,
+		IMOM_RM_03,
+		IMOM_RM_10,
+		IMOM_RM_11,
+		IMOM_RM_12,
+		IMOM_RM_13,
+		IMOM_RM_20,
+		IMOM_RM_21,
+		IMOM_RM_22,
+		IMOM_RM_23,
+		IMOM_RM_30,
+
+		// -- intensity central moments
+		IMOM_CM_00,
+		IMOM_CM_01,
+		IMOM_CM_02,
+		IMOM_CM_03,
+		IMOM_CM_10,
+		IMOM_CM_11,
+		IMOM_CM_12,
+		IMOM_CM_13,
+		IMOM_CM_20,
+		IMOM_CM_21,
+		IMOM_CM_22,
+		IMOM_CM_23,
+		IMOM_CM_30,
+		IMOM_CM_31,
+		IMOM_CM_32,
+		IMOM_CM_33,
+
+		// -- intensity normalized raw moments
+		IMOM_NRM_00,
+		IMOM_NRM_01,
+		IMOM_NRM_02,
+		IMOM_NRM_03,
+		IMOM_NRM_10,
+		IMOM_NRM_11,
+		IMOM_NRM_12,
+		IMOM_NRM_13,
+		IMOM_NRM_20,
+		IMOM_NRM_21,
+		IMOM_NRM_22,
+		IMOM_NRM_23,
+		IMOM_NRM_30,
+		IMOM_NRM_31,
+		IMOM_NRM_32,
+		IMOM_NRM_33,
+
+		// -- intensity normalized central moments
+		IMOM_NCM_02,
+		IMOM_NCM_03,
+		IMOM_NCM_11,
+		IMOM_NCM_12,
+		IMOM_NCM_20,
+		IMOM_NCM_21,
+		IMOM_NCM_30,
+
+		// -- intensity Hu's moments 1-7 
+		IMOM_HU1,
+		IMOM_HU2,
+		IMOM_HU3,
+		IMOM_HU4,
+		IMOM_HU5,
+		IMOM_HU6,
+		IMOM_HU7,
+
+		// -- intensity weighted raw moments
+		IMOM_WRM_00,
+		IMOM_WRM_01,
+		IMOM_WRM_02,
+		IMOM_WRM_03,
+		IMOM_WRM_10,
+		IMOM_WRM_11,
+		IMOM_WRM_12,
+		IMOM_WRM_20,
+		IMOM_WRM_21,
+		IMOM_WRM_30,
+
+		// -- intensity weighted central moments
+		IMOM_WCM_02,
+		IMOM_WCM_03,
+		IMOM_WCM_11,
+		IMOM_WCM_12,
+		IMOM_WCM_20,
+		IMOM_WCM_21,
+		IMOM_WCM_30,
+
+		// -- intensity weighted normalized central moments
+		IMOM_WNCM_02,
+		IMOM_WNCM_03,
+		IMOM_WNCM_11,
+		IMOM_WNCM_12,
+		IMOM_WNCM_20,
+		IMOM_WNCM_21,
+		IMOM_WNCM_30,
+
+		// -- intensity weighted Hu's moments 1-7 
+		IMOM_WHU1,
+		IMOM_WHU2,
+		IMOM_WHU3,
+		IMOM_WHU4,
+		IMOM_WHU5,
+		IMOM_WHU6,
+		IMOM_WHU7,
 
 		_COUNT_
 	};
-}
 
-using namespace Nyxus;
+	enum class Feature3D
+	{
+		// Intensity
+		COV = (int) Feature2D::_COUNT_,
+		COVERED_IMAGE_INTENSITY_RANGE,
+		ENERGY,
+		ENTROPY,
+		EXCESS_KURTOSIS,
+		HYPERFLATNESS,
+		HYPERSKEWNESS,
+		INTEGRATED_INTENSITY,
+		INTERQUARTILE_RANGE,
+		KURTOSIS,
+		MAX,
+		MEAN,
+		MEAN_ABSOLUTE_DEVIATION,
+		MEDIAN,
+		MEDIAN_ABSOLUTE_DEVIATION,
+		MIN,
+		MODE,
+		P01, P10, P25, P75, P90, P99,
+		QCOD,
+		RANGE,
+		ROBUST_MEAN,
+		ROBUST_MEAN_ABSOLUTE_DEVIATION,
+		ROOT_MEAN_SQUARED,
+		SKEWNESS,
+		STANDARD_DEVIATION,
+		STANDARD_DEVIATION_BIASED,
+		STANDARD_ERROR,
+		VARIANCE,
+		VARIANCE_BIASED,
+		UNIFORMITY,
+		UNIFORMITY_PIU,
+
+		// Morphology:
+		VOLUME_PIXELS,
+		CENTROID_X,
+		CENTROID_Y,
+		CENTROID_Z,
+		BBOX_XMIN,
+		BBOX_YMIN,
+		BBOX_ZMIN,
+		BBOX_HEIGHT,
+		BBOX_WIDTH,
+		BBOX_DEPTH,
+		// morphology related to surface
+		AREA,
+		MESH_VOLUME,
+		VOLUME_CONVEXHULL,
+		DIAMETER_EQUAL_AREA,
+		DIAMETER_EQUAL_VOLUME,
+
+		// Neighbor features
+		NUM_NEIGHBORS,
+		PERCENT_TOUCHING,
+		CLOSEST_NEIGHBOR1_DIST,
+		CLOSEST_NEIGHBOR1_ANG,
+		CLOSEST_NEIGHBOR2_DIST,
+		CLOSEST_NEIGHBOR2_ANG,
+		ANG_BW_NEIGHBORS_MEAN,
+		ANG_BW_NEIGHBORS_STDDEV,
+		ANG_BW_NEIGHBORS_MODE,
+
+		// Spatial (raw) moments
+		SPAT_MOMENT_00,
+		SPAT_MOMENT_01,
+		SPAT_MOMENT_02,
+		SPAT_MOMENT_03,
+		SPAT_MOMENT_10,
+		SPAT_MOMENT_11,
+		SPAT_MOMENT_12,
+		SPAT_MOMENT_13,
+		SPAT_MOMENT_20,
+		SPAT_MOMENT_21,
+		SPAT_MOMENT_22,
+		SPAT_MOMENT_23,
+		SPAT_MOMENT_30,
+
+		// texture / GLCM
+		GLCM_ACOR,		// Autocorrelation, IBSI # QWB0
+		GLCM_ASM,		// Angular second moment	IBSI # 8ZQL
+		GLCM_CLUPROM,	// Cluster prominence, IBSI # AE86
+		GLCM_CLUSHADE,	// Cluster shade, IBSI # 7NFM
+		GLCM_CLUTEND,	// Cluster tendency, IBSI # DG8W
+		GLCM_CONTRAST,	// Contrast, IBSI # ACUI
+		GLCM_CORRELATION,	// Correlation, IBSI # NI2N
+		GLCM_DIFAVE,	// Difference average, IBSI # TF7R
+		GLCM_DIFENTRO,	// Difference entropy, IBSI # NTRS
+		GLCM_DIFVAR,	// Difference variance, IBSI # D3YU
+		GLCM_DIS,		// Dissimilarity, IBSI # 8S9J
+		GLCM_ENERGY,	// Energy
+		GLCM_ENTROPY,	// Entropy
+		GLCM_HOM1,		// Homogeneity-1 (PyR)
+		GLCM_HOM2,		// Homogeneity-2 (PyR)
+		GLCM_ID,		// Inv diff, IBSI # IB1Z
+		GLCM_IDN,		// Inv diff normalized, IBSI # NDRX
+		GLCM_IDM,		// Inv diff mom, IBSI # WF0Z
+		GLCM_IDMN,		// Inv diff mom normalized, IBSI # 1QCO
+		GLCM_INFOMEAS1,	// Information measure of correlation 1, IBSI # R8DG
+		GLCM_INFOMEAS2,	// Information measure of correlation 2, IBSI # JN9H
+		GLCM_IV,		// Inv variance, IBSI # E8JP
+		GLCM_JAVE,		// Joint average, IBSI # 60VM
+		GLCM_JE,		// Joint entropy, IBSI # TU9B
+		GLCM_JMAX,		// Joint max (aka PyR max probability), IBSI # GYBY
+		GLCM_JVAR,		// Joint var (aka PyR Sum of Squares), IBSI # UR99
+		GLCM_SUMAVERAGE,	// Sum average, IBSI # ZGXS
+		GLCM_SUMENTROPY,	// Sum entropy, IBSI # P6QZ
+		GLCM_SUMVARIANCE,	// Sum variance, IBSI # OEEB
+		GLCM_VARIANCE,	// Variance
+		GLCM_ASM_AVE,
+		GLCM_ACOR_AVE,
+		GLCM_CLUPROM_AVE,
+		GLCM_CLUSHADE_AVE,
+		GLCM_CLUTEND_AVE,
+		GLCM_CONTRAST_AVE,
+		GLCM_CORRELATION_AVE,
+		GLCM_DIFAVE_AVE,
+		GLCM_DIFENTRO_AVE,
+		GLCM_DIFVAR_AVE,
+		GLCM_DIS_AVE,
+		GLCM_ENERGY_AVE,
+		GLCM_ENTROPY_AVE,
+		GLCM_HOM1_AVE,
+		GLCM_ID_AVE,
+		GLCM_IDN_AVE,
+		GLCM_IDM_AVE,
+		GLCM_IDMN_AVE,
+		GLCM_IV_AVE,
+		GLCM_JAVE_AVE,
+		GLCM_JE_AVE,
+		GLCM_INFOMEAS1_AVE,
+		GLCM_INFOMEAS2_AVE,
+		GLCM_VARIANCE_AVE,
+		GLCM_JMAX_AVE,
+		GLCM_JVAR_AVE,
+		GLCM_SUMAVERAGE_AVE,
+		GLCM_SUMENTROPY_AVE,
+		GLCM_SUMVARIANCE_AVE,
+
+		// texture / GLDM
+		GLDM_SDE,		// Small Dependence Emphasis
+		GLDM_LDE,		// Large Dependence Emphasis
+		GLDM_GLN,		// Gray Level Non-Uniformity
+		GLDM_DN,		// Dependence Non-Uniformity
+		GLDM_DNN,		// Dependence Non-Uniformity Normalized
+		GLDM_GLV,		// Gray Level Variance
+		GLDM_DV,		// Dependence Variance
+		GLDM_DE,		// Dependence Entropy
+		GLDM_LGLE,		// Low Gray Level Emphasis
+		GLDM_HGLE,		// High Gray Level Emphasis
+		GLDM_SDLGLE,	// Small Dependence Low Gray Level Emphasis
+		GLDM_SDHGLE,	// Small Dependence High Gray Level Emphasis
+		GLDM_LDLGLE,	// Large Dependence Low Gray Level Emphasis
+		GLDM_LDHGLE,	// Large Dependence High Gray Level Emphasis
+
+		// texture / GLDZM
+		GLDZM_SDE,		// Small Distance Emphasis
+		GLDZM_LDE,		// Large Distance Emphasis
+		GLDZM_LGLZE,		// Low Grey Level Zone Emphasis
+		GLDZM_HGLZE,		// High Grey Level Zone Emphasis
+		GLDZM_SDLGLE,	// Small Distance Low Grey Level Emphasis
+		GLDZM_SDHGLE,	// Small Distance High GreyLevel Emphasis
+		GLDZM_LDLGLE,	// Large Distance Low Grey Level Emphasis
+		GLDZM_LDHGLE,	// Large Distance High Grey Level Emphasis
+		GLDZM_GLNU,		// Grey Level Non Uniformity
+		GLDZM_GLNUN,	// Grey Level Non Uniformity Normalized
+		GLDZM_ZDNU,		// Zone Distance Non Uniformity
+		GLDZM_ZDNUN,	// Zone Distance Non Uniformity Normalized
+		GLDZM_ZP,		// Zone Percentage
+		GLDZM_GLM,		// Grey Level Mean
+		GLDZM_GLV,		// Grey Level Variance
+		GLDZM_ZDM,		// Zone Distance Mean
+		GLDZM_ZDV,		// Zone Distance Variance
+		GLDZM_ZDE,		// Zone Distance Entropy
+
+		// texture / NGLDM
+		NGLDM_LDE,		// Low Dependence Emphasis (IBSI # SODN)
+		NGLDM_HDE,		// High Dependence Emphasis (IBSI # IMOQ)
+		NGLDM_LGLCE,	// Low Grey Level Count Emphasis (IBSI # TL9H)
+		NGLDM_HGLCE,	// High Grey Level Count Emphasis (IBSI # OAE7)
+		NGLDM_LDLGLE,	// Low Dependence Low Grey Level Emphasis (IBSI # EQ3F)
+		NGLDM_LDHGLE,	// Low Dependence High Grey Level Emphasis (IBSI # JA6D)
+		NGLDM_HDLGLE,	// High Dependence Low Grey Level Emphasis (IBSI # NBZI)
+		NGLDM_HDHGLE,	// High Dependence High Grey Level Emphasis (IBSI # 9QMG)
+		NGLDM_GLNU,		// Grey Level Non-Uniformity (IBSI # FP8K)
+		NGLDM_GLNUN,	// Grey Level Non-Uniformity Normalised (IBSI # 5SPA)
+		NGLDM_DCNU,		// Dependence Count Non-Uniformity (IBSI # Z87G)
+		NGLDM_DCNUN,	// Dependence Count Non-Uniformity Normalised (IBSI # OKJI)
+		NGLDM_DCP,		// Dependence Count Percentage (IBSI # 6XV8)
+		NGLDM_GLM,		// Grey Level Mean
+		NGLDM_GLV,		// Grey Level Variance (IBSI # 1PFV)
+		NGLDM_DCM,		// Dependence Count Mean
+		NGLDM_DCV,		// Dependence Count Variance (IBSI # DNX2)
+		NGLDM_DCENT,	// Dependence Count Entropy (IBSI # FCBV)
+		NGLDM_DCENE,	// Dependence Count Energy (IBSI # CAS9)
+
+		// texture / NGTDM
+		NGTDM_COARSENESS,
+		NGTDM_CONTRAST,
+		NGTDM_BUSYNESS,
+		NGTDM_COMPLEXITY,
+		NGTDM_STRENGTH,
+
+		// texture/glszm
+		GLSZM_SAE,		// Small Area Emphasis
+		GLSZM_LAE,		// Large Area Emphasis
+		GLSZM_GLN,		// Gray Level Non - Uniformity
+		GLSZM_GLNN,		// Gray Level Non - Uniformity Normalized
+		GLSZM_SZN,		// Size - Zone Non - Uniformity
+		GLSZM_SZNN,		// Size - Zone Non - Uniformity Normalized
+		GLSZM_ZP,		// Zone Percentage
+		GLSZM_GLV,		// Gray Level Variance
+		GLSZM_ZV,		// Zone Variance
+		GLSZM_ZE,		// Zone Entropy
+		GLSZM_LGLZE,	// Low Gray Level Zone Emphasis
+		GLSZM_HGLZE,	// High Gray Level Zone Emphasis
+		GLSZM_SALGLE,	// Small Area Low Gray Level Emphasis
+		GLSZM_SAHGLE,	// Small Area High Gray Level Emphasis
+		GLSZM_LALGLE,	// Large Area Low Gray Level Emphasis
+		GLSZM_LAHGLE,	// Large Area High Gray Level Emphasis
+
+		// texture / GLRLM
+		GLRLM_SRE,	// Short Run Emphasis 
+		GLRLM_LRE,	// Long Run Emphasis 
+		GLRLM_GLN,	// Gray Level Non-Uniformity 
+		GLRLM_GLNN,	// Gray Level Non-Uniformity Normalized 
+		GLRLM_RLN,	// Run Length Non-Uniformity
+		GLRLM_RLNN,	// Run Length Non-Uniformity Normalized 
+		GLRLM_RP,	// Run Percentage
+		GLRLM_GLV,	// Gray Level Variance 
+		GLRLM_RV,	// Run Variance 
+		GLRLM_RE,	// Run Entropy 
+		GLRLM_LGLRE,	// Low Gray Level Run Emphasis 
+		GLRLM_HGLRE,	// High Gray Level Run Emphasis 
+		GLRLM_SRLGLE,	// Short Run Low Gray Level Emphasis 
+		GLRLM_SRHGLE,	// Short Run High Gray Level Emphasis 
+		GLRLM_LRLGLE,	// Long Run Low Gray Level Emphasis 
+		GLRLM_LRHGLE,	// Long Run High Gray Level Emphasis 
+		// -- averages --
+		GLRLM_SRE_AVE,
+		GLRLM_LRE_AVE,
+		GLRLM_GLN_AVE,
+		GLRLM_GLNN_AVE,
+		GLRLM_RLN_AVE,
+		GLRLM_RLNN_AVE,
+		GLRLM_RP_AVE,
+		GLRLM_GLV_AVE,
+		GLRLM_RV_AVE,
+		GLRLM_RE_AVE,
+		GLRLM_LGLRE_AVE,
+		GLRLM_HGLRE_AVE,
+		GLRLM_SRLGLE_AVE,
+		GLRLM_SRHGLE_AVE,
+		GLRLM_LRLGLE_AVE,
+		GLRLM_LRHGLE_AVE,
+
+		_COUNT_
+	};
+
+	enum class FeatureIMQ {
+		// Image Quality features
+		FOCUS_SCORE = (int) Feature3D::_COUNT_,
+		LOCAL_FOCUS_SCORE,
+		POWER_SPECTRUM_SLOPE,
+		MAX_SATURATION,
+		MIN_SATURATION,
+		SHARPNESS,
+
+		_COUNT_
+	};
+
+	enum class Fgroup2D
+	{
+		FG2_ALL = 0,
+		FG2_WHOLESLIDE,
+		FG2_INTENSITY, 
+		FG2_MORPHOLOGY, 
+		FG2_BASIC_MORPHOLOGY, 
+		FG2_GLCM, 
+		FG2_GLRLM, 
+		FG2_GLDZM, 
+		FG2_GLSZM,
+		FG2_GLDM,
+		FG2_NGLDM,
+		FG2_NGTDM,
+		FG2_BUT_GABOR,
+		FG2_ALL_BUT_GLCM, 
+		FG2_NEIG,
+		FG2_GEOMOMENTS,		// shape and intensity geometric moments
+		FG2_GEOMOMENTS_I,	// intensity geometric moments
+		FG2_GEOMOMENTS_S,	// shape geometric moments
+		_COUNT_
+	};	
+	
+	enum class Fgroup3D
+	{
+		FG3_ALL = (int) Fgroup2D::_COUNT_,
+		FG3_INTENSITY,
+		FG3_MORPHOLOGY,
+		FG3_TEXTURE,			// 3D_GLCM + 3D_GLRLM + 3D_GLSZM + etc
+		FG3_GLCM,
+		FG3_GLDM,
+		FG3_GLDZM,
+		FG3_NGLDM,
+		FG3_NGTDM,
+		FG3_GLSZM,
+		FG3_GLRLM,
+		FG3_NEIG,
+		FG3_MOMENTS,
+		_COUNT_
+	};
+
+	enum class FgroupIMQ
+	{
+		ALL_IMQ= (int) Fgroup3D::_COUNT_,
+
+		__COUNT_
+	};
+}
 
 /// @brief Helper class to set and access user feature selection made via the command line or Python interface.
 class FeatureSet
 {
 public:
 	FeatureSet();
-	void enableAll (bool newStatus = true) { for (int i = 0; i < AvailableFeatures::_COUNT_; i++) m_enabledFeatures[i] = newStatus; }
-	void disableFeatures (std::initializer_list<AvailableFeatures>& desiredFeatures)
+	void enableAll(bool newStatus = true) 
+	{ 
+		for (int i = 0; i < int(Nyxus::Feature2D::_COUNT_); i++) m_enabledFeatures[i] = newStatus; 
+	}
+	void enableAllIMQ(bool newStatus = true)
+	{
+		for (int i = int(Nyxus::Feature3D::_COUNT_); i < int(Nyxus::FeatureIMQ::_COUNT_); i++) {
+			m_enabledFeatures[i] = newStatus; 
+		}
+	}
+	void disableFeatures(const std::initializer_list<Nyxus::Feature2D>& desiredFeatures)
 	{
 		for (auto f : desiredFeatures)
-			m_enabledFeatures[f] = false;
+			m_enabledFeatures[(int)f] = false;
 	}
-	void enableFeatures(std::initializer_list<AvailableFeatures>& desiredFeatures) {
+	void enableFeatures(const std::initializer_list<Nyxus::Feature2D>& F, bool enable=true) 
+	{
+		for (auto f : F)
+			m_enabledFeatures[(int)f] = enable;
+	}
+	void enableFeatures(const std::initializer_list<Nyxus::Feature3D>& desiredFeatures) 
+	{
 		for (auto f : desiredFeatures)
-			m_enabledFeatures[f] = true;
+			m_enabledFeatures[(int)f] = true;
 	}
-	void enableFeature(AvailableFeatures f) {
-		m_enabledFeatures[f] = true;
+	void enableFeatures(const std::initializer_list<Nyxus::FeatureIMQ>& desiredFeatures) {
+		for (auto f : desiredFeatures)
+			m_enabledFeatures[(int)f] = true;
+	}
+	void enableFeature (int fcode)
+	{
+		if (fcode < 0)
+		{
+			m_enabledFeatures [-fcode] = false;
+		}
+		else
+			m_enabledFeatures [fcode] = true;
 	}
 	void enablePixelIntenStats() {
 		enableAll(false);
-		m_enabledFeatures[MEAN] =
-			m_enabledFeatures[MEDIAN] =
-			m_enabledFeatures[MIN] =
-			m_enabledFeatures[MAX] =
-			m_enabledFeatures[RANGE] =
-			m_enabledFeatures[STANDARD_DEVIATION] =
-			m_enabledFeatures[SKEWNESS] =
-			m_enabledFeatures[KURTOSIS] =
-			m_enabledFeatures[MEAN_ABSOLUTE_DEVIATION] =
-			m_enabledFeatures[ENERGY] =
-			m_enabledFeatures[ROOT_MEAN_SQUARED] =
-			m_enabledFeatures[ENTROPY] =
-			m_enabledFeatures[MODE] =
-			m_enabledFeatures[UNIFORMITY] =
-			m_enabledFeatures[P10] = m_enabledFeatures[P25] = m_enabledFeatures[P75] = m_enabledFeatures[P90] =
-			m_enabledFeatures[INTERQUARTILE_RANGE] =
-			m_enabledFeatures[ROBUST_MEAN_ABSOLUTE_DEVIATION] =
-			m_enabledFeatures[WEIGHTED_CENTROID_Y] =
-			m_enabledFeatures[WEIGHTED_CENTROID_X] =
-			m_enabledFeatures[MASS_DISPLACEMENT] = true;
+		m_enabledFeatures[(int)Nyxus::Feature2D::MEAN] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::MEDIAN] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::MIN] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::MAX] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::RANGE] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::COVERED_IMAGE_INTENSITY_RANGE] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::STANDARD_DEVIATION] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::SKEWNESS] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::KURTOSIS] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::EXCESS_KURTOSIS] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::MEAN_ABSOLUTE_DEVIATION] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::MEDIAN_ABSOLUTE_DEVIATION] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::ENERGY] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::ROOT_MEAN_SQUARED] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::ENTROPY] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::MODE] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::UNIFORMITY] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::P10] = 
+			m_enabledFeatures[(int)Nyxus::Feature2D::P25] = 
+			m_enabledFeatures[(int)Nyxus::Feature2D::P75] = 
+			m_enabledFeatures[(int)Nyxus::Feature2D::P90] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::QCOD] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::INTERQUARTILE_RANGE] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::ROBUST_MEAN] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::ROBUST_MEAN_ABSOLUTE_DEVIATION] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::COV] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::WEIGHTED_CENTROID_Y] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::WEIGHTED_CENTROID_X] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::MASS_DISPLACEMENT] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::STANDARD_DEVIATION_BIASED] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::VARIANCE] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::VARIANCE_BIASED] = true;
 	}
 	void enableBoundingBox() {
 		enableAll(false);
-		m_enabledFeatures[BBOX_YMIN] =
-			m_enabledFeatures[BBOX_XMIN] =
-			m_enabledFeatures[BBOX_HEIGHT] =
-			m_enabledFeatures[BBOX_WIDTH] = true;
+		m_enabledFeatures[(int)Nyxus::Feature2D::BBOX_YMIN] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::BBOX_XMIN] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::BBOX_HEIGHT] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::BBOX_WIDTH] = true;
 	}
 	void enableFeret() {
 		enableAll(false);
-		m_enabledFeatures[MIN_FERET_DIAMETER] =
-			m_enabledFeatures[MAX_FERET_DIAMETER] =
-			m_enabledFeatures[MIN_FERET_ANGLE] =
-			m_enabledFeatures[MAX_FERET_ANGLE] =
-			m_enabledFeatures[STAT_FERET_DIAM_MIN] =
-			m_enabledFeatures[STAT_FERET_DIAM_MAX] =
-			m_enabledFeatures[STAT_FERET_DIAM_MEAN] =
-			m_enabledFeatures[STAT_FERET_DIAM_MEDIAN] =
-			m_enabledFeatures[STAT_FERET_DIAM_STDDEV] =
-			m_enabledFeatures[STAT_FERET_DIAM_MODE] = true;
+			m_enabledFeatures[(int)Nyxus::Feature2D::MIN_FERET_ANGLE] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::MAX_FERET_ANGLE] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::STAT_FERET_DIAM_MIN] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::STAT_FERET_DIAM_MAX] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::STAT_FERET_DIAM_MEAN] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::STAT_FERET_DIAM_MEDIAN] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::STAT_FERET_DIAM_STDDEV] =
+			m_enabledFeatures[(int)Nyxus::Feature2D::STAT_FERET_DIAM_MODE] = true;
 	}
-	bool isEnabled(int fc) const { return fc < AvailableFeatures::_COUNT_ ? m_enabledFeatures[fc] : false; }
-	bool anyEnabled(std::initializer_list<int> F) const
+	bool isEnabled (Nyxus::Feature2D fc) const
+	{ 
+		return fc < Nyxus::Feature2D::_COUNT_ ? m_enabledFeatures[(int)fc] : false;
+	}
+	bool isEnabled (Nyxus::Feature3D fc) const
+	{ 
+		return fc < Nyxus::Feature3D::_COUNT_ ? m_enabledFeatures[(int)fc] : false;
+	}
+	bool isEnabled (Nyxus::FeatureIMQ fc) const
+	{ 
+		return fc < Nyxus::FeatureIMQ::_COUNT_ ? m_enabledFeatures[(int)fc] : false;
+	}
+
+	bool anyEnabled (const std::initializer_list<Nyxus::Feature2D>& F) const
 	{
 		for (auto f : F)
-			if (m_enabledFeatures[f])
+			if (m_enabledFeatures[(int)f])
 				return true;
 		return false;
 	}
-	int numOfEnabled() {
+	bool anyEnabled (const std::initializer_list<Nyxus::Feature3D>& F) const
+	{
+		for (auto f : F)
+			if (m_enabledFeatures[(int)f])
+				return true;
+		return false;
+	}
+	bool anyEnabled (const std::initializer_list<Nyxus::FeatureIMQ>& F) const
+	{
+		for (auto f : F)
+			if (m_enabledFeatures[(int)f])
+				return true;
+		return false;
+	}
+	int numOfEnabled (int dim) 
+	{
 		int cnt = 0;
-		for (int i = 0; i < AvailableFeatures::_COUNT_; i++)
+		int n = dim == 2 ? (int)Nyxus::Feature2D::_COUNT_ : (int)Nyxus::Feature3D::_COUNT_;
+		for (int i = 0; i < n; i++)
 			if (m_enabledFeatures[i])
 				cnt++;
 		return cnt;
 	}
-	bool findFeatureByString (const std::string& featureName, AvailableFeatures& fcode);
-	std::string findFeatureNameByCode (AvailableFeatures fcode);
+	bool find_2D_FeatureByString (const std::string& name, int& f);		// 'f' is signed Feature2D
+	bool find_2D_GroupByString (const std::string& group_name, int & group_code);	// 'group_code' is signed Nyxus::Fgroup2D
+	bool find_3D_FeatureByString (const std::string & feature_name, Nyxus::Feature3D & feature_code);
+	bool find_3D_GroupByString (const std::string & group_name, Nyxus::Fgroup3D & group_code);
+	bool find_IMQ_FeatureByString (const std::string & feature_name, Nyxus::FeatureIMQ & feature_code);
+	bool find_IMQ_GroupByString (const std::string & group_name, Nyxus::FgroupIMQ & group_code);
+
+	std::string findFeatureNameByCode (Nyxus::Feature2D code);
+	std::string findFeatureNameByCode (Nyxus::Feature3D fcode);
+	std::string findGroupNameByCode (Nyxus::Fgroup2D code);
+	std::string findGroupNameByCode (Nyxus::Fgroup3D code);
+	std::string findGroupNameByCode (Nyxus::FgroupIMQ code);
+
 	void show_help();
 
 	// Relying on RVO rather than std::move
-	std::vector<std::tuple<std::string, AvailableFeatures>> getEnabledFeatures();
+	std::vector<std::tuple<std::string, int>> getEnabledFeatures();
 
 private:
-	bool m_enabledFeatures[AvailableFeatures::_COUNT_];
+	bool m_enabledFeatures [(int) Nyxus::FeatureIMQ::_COUNT_];
 };
 
 namespace Nyxus
 {
 	extern FeatureSet theFeatureSet;
-	extern std::map <std::string, AvailableFeatures> UserFacingFeatureNames;
+	extern std::map <std::string, Nyxus::Feature2D> UserFacingFeatureNames;
+	extern std::map <std::string, Nyxus::FeatureIMQ> UserFacingIMQFeatureGroupNames;
+	extern std::map <std::string, Nyxus::Fgroup2D> UserFacing2dFeaturegroupNames;
+	extern std::map <std::string, Nyxus::Feature3D> UserFacing_3D_featureNames;
+	extern std::map <std::string, Nyxus::Fgroup3D> UserFacing3dFeaturegroupNames;
 }

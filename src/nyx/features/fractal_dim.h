@@ -11,14 +11,22 @@
 class FractalDimensionFeature: public FeatureMethod
 {
 public:
+	
+	const constexpr static std::initializer_list<Nyxus::Feature2D> featureset = 
+	{ 
+		Nyxus::Feature2D::FRACT_DIM_BOXCOUNT,
+		Nyxus::Feature2D::FRACT_DIM_PERIMETER
+	};
+
 	FractalDimensionFeature();
 	void calculate(LR& r);
 	void osized_add_online_pixel(size_t x, size_t y, uint32_t intensity);
 	void osized_calculate(LR& r, ImageLoader& imloader);
 	void save_value(std::vector<std::vector<double>>& feature_vals);
+	static void extract(LR& roi);
 	static void parallel_process_1_batch(size_t start, size_t end, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData);
 
-	static bool required(const FeatureSet& fs) { return fs.anyEnabled({ FRACT_DIM_BOXCOUNT, FRACT_DIM_PERIMETER }); }
+	static bool required(const FeatureSet& fs) { return fs.anyEnabled({ Nyxus::Feature2D::FRACT_DIM_BOXCOUNT, Nyxus::Feature2D::FRACT_DIM_PERIMETER }); }
 
 private:
 	void calculate_boxcount_fdim (LR& r);

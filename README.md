@@ -15,6 +15,8 @@ Nyxus is a feature-rich, highly optimized, Python/C++ application capable of ana
 
 Nyxus can be used via Python or command line and is available in containerized form for reproducible execution. Nyxus computes over 450 combined intensity, texture, and morphological features at the ROI or whole image level with more in development. Key features that make Nyxus unique among other image feature extraction applications is its ability to operate at any scale, its highly validated algorithms, and its modular nature that makes the addition of new features straightforward.
 
+Currently, Nyxus can read image data from OME-TIFF, OME-Zarr and DICOM 2D Grayscale images. It also has a Python API to support in-memory image data via Numpy array. 
+
 The docs can be found at [Read the Docs](https://nyxus.readthedocs.io/en/latest/).
 
 ## Getting started 
@@ -30,7 +32,7 @@ or
 conda install nyxus -c conda-forge
 ```
 
-Usage is very straightforward. Given `intensities` and `labels` folders, Nyxus pairs up intensity-label pairs and extracts features from all of them. A summary of the avaialble feature are [listed below](#available-features).
+Usage is very straightforward. Given `intensities` and `labels` folders, Nyxus pairs up intensity-label images and extracts features from all of them. A summary of the available feature are [listed below](#available-features).
 
 ```python 
 from nyxus import Nyxus
@@ -40,20 +42,23 @@ maskDir = "/path/to/images/labels/"
 features = nyx.featurize_directory (intensityDir, maskDir)
 ```
 
-Alternatively, Nyxus can process explicitly defined pairs of intensity-mask images, for example image "i1" with mask "m1" and image "i2" with mask "m2":
+Alternatively, Nyxus can process explicitly defined pairs of intensity-mask images thus specifying custom 1:N and M:N mapping between label and intensity image files. The following example extracts features from intensity images 'i1', 'i2', and 'i3' related with mask images 'm1' and 'm2' via a custom mapping:
 
 ```python 
 from nyxus import Nyxus
 nyx = Nyxus(["*ALL*"])
-features = nyx.featurize(
+features = nyx.featurize_files(
     [
         "/path/to/images/intensities/i1.ome.tif", 
-        "/path/to/images/intensities/i2.ome.tif"
+        "/path/to/images/intensities/i2.ome.tif",
+        "/path/to/images/intensities/i3.ome.tif" 
     ], 
     [
         "/path/to/images/labels/m1.ome.tif", 
+        "/path/to/images/labels/m2.ome.tif",
         "/path/to/images/labels/m2.ome.tif"
-    ])
+    ],
+	False)
 ```
 
 The `features` variable is a Pandas dataframe similar to what is shown below.
@@ -68,9 +73,207 @@ The `features` variable is a Pandas dataframe similar to what is shown below.
 | ... | ...                  | ...                  |     ... | ...     |  ...     |...|   ...      |
 | 734 | p5_y0_r51_c0.ome.tif | p5_y0_r51_c0.ome.tif |     223 | 54573.3 |  54573.3 |...|   0.980769 |
 
+Nyxus can also process intensity-mask pairs that are loaded as Numpy arrays using the `featurize` method. This method takes in either a single pair of 2D intensity-mask pairs
+or a pair of 3D arrays containing 2D intensity and mask images. There is also two optional parameters to supply names to the resulting dataframe, . 
+
+```python 
+from nyxus import Nyxus
+import numpy as np
+
+nyx = Nyxus(["*ALL*"])
+
+intens = np.array([
+    [[1, 4, 4, 1, 1],
+     [1, 4, 6, 1, 1],
+     [4, 1, 6, 4, 1],
+     [4, 4, 6, 4, 1]],
+])
+
+seg = np.array([
+    [[1, 1, 1, 1, 1],
+     [1, 1, 1, 1, 1],
+     [0, 1, 1, 1, 1],
+     [1, 1, 1, 1, 1]]
+])
+
+features = nyx.featurize(intens, seg)
+```
+
+The `features` variable is a Pandas dataframe similar to what is shown below.
+
+|     | mask_image    | intensity_image | label | MEAN    |   MEDIAN |...|    GABOR_6 |
+|----:|:--------------|:----------------|------:|--------:|---------:|--:|-----------:|
+|   0 | Segmentation1 | Intensity1      |     1 | 45366.9 |  46887   |...|   0.873016 |
+|   1 | Segmentation1 | Intensity1      |     2 | 27122.8 |  27124.5 |...|   1.000000 |
+|   2 | Segmentation1 | Intensity1      |     3 | 34777.4 |  33659   |...|   0.942857 |
+|   3 | Segmentation1 | Intensity1      |     4 | 35808.2 |  36924   |...|   0.824074 |
+| ... | ...           | ...             |   ... | ...     |  ...     |...|   ...      |
+|  14 | Segmentation2 | Intensity2      |     6 | 54573.3 |  54573.3 |...|   0.980769 |
+
+Note that in this case, default names of virtual image files were provided for the `mask_image` and `intensity_image` columns. To override default names 'Intensity<k>' and 'Segmentation<k>' appearing in these columns, the optional arguments `intensity_names` and `label_names` are used by passing lists of names in. 
+The length of the lists must be the same as the length of the mask and intensity arrays. The following example sets mask and intensity images in the output to desired values:
+
+```python 
+intens_names = ['int1', 'int2']
+seg_names = ['seg1', 'seg2']
+features = nyx.featurize(intens, seg, intens_name, seg_name)
+```
+
+The `features` variable will now use the custom names, as shown below
+
+|     | mask_image       | intensity_image          | label | MEAN    |   MEDIAN |...|    GABOR_6 |
+|----:|:-----------------|:-------------------------|------:|--------:|---------:|--:|-----------:|
+|   0 | seg1 | int1      |     1 | 45366.9 |  46887   |...|   0.873016 |
+|   1 | seg1 | int1      |     2 | 27122.8 |  27124.5 |...|   1.000000 |
+|   2 | seg1 | int1      |     3 | 34777.4 |  33659   |...|   0.942857 |
+|   3 | seg1 | int1      |     4 | 35808.2 |  36924   |...|   0.824074 |
+| ... | ...              | ...                      |   ... | ...     |  ...     |...|   ...      |
+|  14 | seg2 | int2      |     6 | 54573.3 |  54573.3 |...|   0.980769 |
+
+
 For more information on all of the available options and features, check out [the documentation](#).
 
 Nyxus can also be [built from source](#building-from-source) and used from the command line, or via a pre-built Docker container. 
+
+## Getting and setting parameters of Nyxus
+
+All parameters to configure Nyxus are available to set within the constructor. These parameters can also be updated after the object is created using the `set_params`
+method. This method takes in keyword arguments where the key is a valid parameter in Nyxus and the value is the updated value for the parameter. For example, 
+to update the `coarse_gray_depth` to 256 and the `gabor_f0` parameter to 0.1, the following can be done:
+
+```python 
+from nyxus import Nyxus
+nyx = Nyxus(["*ALL*"])
+intensityDir = "/path/to/images/intensities/"
+maskDir = "/path/to/images/labels/"
+features = nyx.featurize_directory (intensityDir, maskDir)
+nyx.set_params(coarse_gray_depth=256, gabor_f0=0.1)
+```
+
+A list of valid parameters is included in the documentation for this method.
+
+To get the values of the parameters in Nyxus, the `get_params` method is used. If no arguments are passed to this function, then a dictionary mapping all of the variable names to the respective value is returned. For example,
+
+```python 
+from nyxus import Nyxus
+nyx = Nyxus(["*ALL*"])
+intensityDir = "/path/to/images/intensities/"
+maskDir = "/path/to/images/labels/"
+features = nyx.featurize_directory (intensityDir, maskDir)
+print(nyx.get_params())
+```
+
+will print the dictionary
+
+```bash
+{'coarse_gray_depth': 256, 
+'features': ['*ALL*'], 
+'gabor_f0': 0.1, 
+'gabor_freqs': [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0], 
+'gabor_gamma': 0.1, 
+'gabor_kersize': 16, 
+'gabor_sig2lam': 0.8, 
+'gabor_theta': 45.0, 
+'gabor_thold': 0.025, 
+'ibsi': 0, 
+'n_loader_threads': 1, 
+'n_feature_calc_threads': 4, 
+'neighbor_distance': 5, 
+'pixels_per_micron': 1.0}
+```
+
+There is also the option to pass arguments to this function to only receive a subset of parameter values. The arguments should be 
+valid parameter names as string, separated by commas. For example,
+
+```python 
+from nyxus import Nyxus
+nyx = Nyxus(["*ALL*"])
+intensityDir = "/path/to/images/intensities/"
+maskDir = "/path/to/images/labels/"
+features = nyx.featurize_directory (intensityDir, maskDir)
+print(nyx.get_params('coarse_gray_depth', 'features', 'gabor_f0'))
+```
+will print the dictionary
+
+```python
+{ 
+  'coarse_gray_depth': 256, 
+  'features': ['*ALL*'], 
+  'gabor_f0': 0.1 
+}
+```
+
+## Using Arrow for feature results
+
+Nyxus provides the ability to get the results of the feature calculations in Arrow IPC and Parquet formats. 
+
+To create an Arrow IPC or Parquet file, use `output_type="arrowipc"` or `output_type="parquet"` in `Nyxus.featurize*` calls. 
+Optionally, an `output_path` argument can be passed to specify the location of the output file. For example,
+
+```python
+    from nyxus import Nyxus
+    import numpy as np
+
+    intens = np.array([
+        [[1, 4, 4, 1, 1],
+            [1, 4, 6, 1, 1],
+            [4, 1, 6, 4, 1],
+            [4, 4, 6, 4, 1]],
+                    
+        [[1, 4, 4, 1, 1],
+            [1, 1, 6, 1, 1],
+            [1, 1, 3, 1, 1],
+            [4, 4, 6, 1, 1]],
+        
+        [[1, 4, 4, 1, 1],
+            [1, 1, 1, 1, 1],
+            [1, 1, 6, 1, 1],
+            [1, 1, 6, 1, 1]],
+        
+        [[1, 4, 4, 1, 1],
+            [1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1],
+            [1, 1, 6, 1, 1]],
+    ])
+
+    seg = np.array([
+        [[1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1]],
+                    
+        [[1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1]],
+        
+        [[1, 1, 1, 0, 0],
+            [1, 1, 1, 1, 1],
+            [1, 1, 0, 1, 1],
+            [1, 1, 1, 1, 1]],
+                    
+        [[1, 1, 1, 0, 0],
+            [1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1]]
+        
+    ])
+
+    nyx = Nyxus(["*ALL_INTENSITY*"])
+
+    arrow_file = nyx.featurize(intens, seg, output_type="arrowipc", output_path="some_path")
+
+    print(arrow_file)
+
+```
+
+The output is:
+
+```bash
+    NyxusFeatures.arrow
+```
+
+This functionality is also available in the through the command line using the flag `--outputType`. If this flag is set to `--outputType=arrowipc` then the results will be written to an Arrow IPC file in the output directory and `--outputType=parquet` will write to a Parquet file.
 
 ## Available features 
 The feature extraction plugin extracts morphology and intensity based features from pairs of intensity/binary mask images and produces a csv file output. The input image should be in tiled [OME TIFF format](https://docs.openmicroscopy.org/ome-model/6.2.0/ome-tiff/specification.html).  The plugin extracts the following features:
@@ -83,7 +286,7 @@ Nyxus provides a set of pixel intensity, morphology, texture, intensity distribu
 | INTEGRATED_INTENSITY | Integrated intensity of the region of interest (ROI) |
 | MEAN, MAX, MEDIAN, STANDARD_DEVIATION, MODE | Mean/max/median/stddev/mode intensity value of the ROI | 
 | SKEWNESS, KURTOSIS, HYPERSKEWNESS, HYPERFLATNESS  | higher standardized moments | 
-| MEAN_ABSOLUTE_DEVIATION  | Mean absolute devation | 
+| MEAN_ABSOLUTE_DEVIATION  | Mean absolute deviation | 
 | ENERGY  | ROI energy | 
 | ROOT_MEAN_SQUARED  | Root of mean squared deviation | 
 | ENTROPY  | ROI entropy - a measure of the amount of information in the ROI | 
@@ -111,15 +314,16 @@ Nyxus provides a set of pixel intensity, morphology, texture, intensity distribu
 | EROSIONS_2_VANISH | Number of erosion operations for a ROI to vanish in its axis aligned bounding box |
 | EROSIONS_2_VANISH_COMPLEMENT | Number of erosion operations for a ROI to vanish in its convex hull |
 | FRACT_DIM_BOXCOUNT, FRACT_DIM_PERIMETER | Fractal dimension features |
-| GLCM | Gray level co-occurrence Matrix features |
-| GLRLM | Gray level run-length matrix based features
-| GLSZM | Gray level size zone matrix based features
-| GLDM | Gray level dependency matrix based features
-| NGTDM | Neighbouring gray tone difference matrix features
-| ZERNIKE2D, FRAC_AT_D, RADIAL_CV, MEAN_FRAC | Radial distribution features
+| GLCM | Grey level co-occurrence Matrix features |
+| GLRLM | Grey level run-length matrix based features |
+| GLDZM | Grey level distance zone matrix based features |
+| GLSZM | Grey level size zone matrix based features |
+| GLDM | Grey level dependency matrix based features |
+| NGTDM | Neighbouring grey tone difference matrix features |
+| ZERNIKE2D, FRAC_AT_D, RADIAL_CV, MEAN_FRAC | Radial distribution features |
 | GABOR | A set of Gabor filters of varying frequencies and orientations |
 
-For the complete list of features see [Nyxus provided features](docs/featurelist.md)
+For the complete list of features see [Nyxus provided features](docs/source/featurelist.rst)
 
 ## Feature groups
 
@@ -131,82 +335,157 @@ Apart from defining your feature set by explicitly specifying comma-separated fe
 | \*all_intensity\* | integrated_intensity, mean, median, min, max, range, standard_deviation, standard_error, uniformity, skewness, kurtosis, hyperskewness, hyperflatness, mean_absolute_deviation, energy, root_mean_squared, entropy, mode, uniformity, p01, p10, p25, p75, p90, p99, interquartile_range, robust_mean_absolute_deviation, mass_displacement
 | \*all_morphology\* | area_pixels_count, area_um2, centroid_x, centroid_y, weighted_centroid_y, weighted_centroid_x, compactness, bbox_ymin, bbox_xmin, bbox_height, bbox_width, major_axis_length, minor_axis_length, eccentricity, orientation, num_neighbors, extent, aspect_ratio, equivalent_diameter, convex_hull_area, solidity, perimeter, edge_mean_intensity, edge_stddev_intensity, edge_max_intensity, edge_min_intensity, circularity
 | \*basic_morphology\* | area_pixels_count, area_um2, centroid_x, centroid_y, bbox_ymin, bbox_xmin, bbox_height, bbox_width
-| \*all_glcm\* | glcm_angular2ndmoment, glcm_contrast, glcm_correlation, glcm_variance, glcm_inversedifferencemoment, glcm_sumaverage, glcm_sumvariance, glcm_sumentropy, glcm_entropy, glcm_differencevariance, glcm_differenceentropy, glcm_infomeas1, glcm_infomeas2
+| \*geomoms\* | shape and intensity geometric moments, equivalent to \*igeomoms\* and \*sgeomoms\* combined
+| \*igeomoms\* | intensity raw moments IMOM_RM_pq, central moments IMOM_CM_pq, normalized raw moments IMOM_NRM_pq, normalized central moments IMOM_NCM_pq, Hu invariants IMOM_HUk, weighted raw moments IMOM_WRM_pq, weighted central moments IMOM_WCM_pq, weighted normalized central moments IMOM_WNCM_pq, weighted Hu invariants IMOM_WHUk
+| \*sgeomoms\* | shape raw moments SPAT_MOMENT_pq, central moments CENTRAL_MOMENT_pq, normalized raw moments NORM_SPAT_MOMENT_pq, normalized central moments NORM_CENTRAL_MOMENT_pq, Hu invariants HU_Mk, weighted raw moments WEIGHTED_SPAT_MOMENT_pq, weighted central moments WEIGHTED_CENTRAL_MOMENT_pq, weighted normalized central moments WT_NORM_CTR_MOM_pq, weighted Hu invariants WEIGHTED_HU_Mk
+| \*all_glcm\* | glcm_asm, glcm_acor, glcm_cluprom, glcm_clushade, glcm_clutend, glcm_contrast, glcm_correlation, glcm_difave, glcm_difentro, glcm_difvar, glcm_dis, glcm_energy, glcm_entropy, glcm_hom1, glcm_hom2, glcm_id, glcm_idn, glcm_idm, glcm_idmn, glcm_infomeas1, glcm_infomeas2, glcm_iv, glcm_jave, glcm_je, glcm_jmax, glcm_jvar, glcm_sumaverage, glcm_sumentropy, glcm_sumvariance, glcm_variance
 | \*all_glrlm\* | glrlm_sre, glrlm_lre, glrlm_gln, glrlm_glnn, glrlm_rln, glrlm_rlnn, glrlm_rp, glrlm_glv, glrlm_rv, glrlm_re, glrlm_lglre, glrlm_hglre, glrlm_srlgle, glrlm_srhgle, glrlm_lrlgle, glrlm_lrhgle
 | \*all_glszm\* | glszm_sae, glszm_lae, glszm_gln, glszm_glnn, glszm_szn, glszm_sznn, glszm_zp, glszm_glv, glszm_zv, glszm_ze, glszm_lglze, glszm_hglze, glszm_salgle, glszm_sahgle, glszm_lalgle, glszm_lahgle
 | \*all_gldm\* | gldm_sde, gldm_lde, gldm_gln, gldm_dn, gldm_dnn, gldm_glv, gldm_dv, gldm_de, gldm_lgle, gldm_hgle, gldm_sdlgle, gldm_sdhgle, gldm_ldlgle, gldm_ldhgle
 | \*all_ngtdm\* | ngtdm_coarseness, ngtdm_contrast, ngtdm_busyness, ngtdm_complexity, ngtdm_strength
-| \*all_easy\* | All the features except the most time-consuming GABOR, GLCM, and the group of 2D moment features
+| \*wholeslide\* | All the features except those irrelevant for the whole-slide use case (BasicMorphology, EnclosingInscribingCircumscribingCircle, ConvexHull, FractalDimension, GeodeticLengthThickness, Neighbor, RoiRadius, EllipseFitting, EulerNumber, Extrema, ErosionPixel, CaliperFeret, CaliperMartin, CaliperNassenstein, and Chords)
 | \*all\* | All the features 
 
 ## Command line usage
 
-Assuming you [built the Nyxus binary](#building-from-source) as outlined below, the following parameters are available for the CLI:
+Assuming you [built the Nyxus binary](#building-from-source) as outlined below, the following parameters are available for the command line interface:
 
-| Parameter | Description | I/O | Type |
-|------|-------------|------|----|
---intDir|Intensity image collection|Input|collection|
---segDir|Labeled image collection|Input|collection
---intSegMapDir | Data collection of the ad-hoc intensity-to-mask file mapping | Input | Collection
---intSegMapFile | Name of the text file containing an ad-hoc intensity-to-mask file mapping. The files are assumed to reside in corresponding intensity and label collections | Input | string
---features|Select intensity and shape features required|Input|array
---filePattern|To match intensity and labeled/segmented images |Input|string
---csvFile|Save csv file as one csv file for all images or separate csv file for each image|Input|enum
---pixelDistance|Pixel distance to calculate the neighbors touching cells|Input|integer|
---embeddedpixelsize|Consider the unit embedded in metadata, if present|Input|boolean
---unitLength|Enter the metric for unit conversion|Input|string
---pixelsPerunit|Enter the number of pixels per unit of the metric|Input|number
---outDir|Output collection|Output|csvCollection
---coarseGrayDepth|Custom number of levels in grayscale denoising used in texture features (default: 256)|Input|integer
+| <div style="width:150px">Parameter</div> | Description | Type |
+|------|-------------|------|
+--outputType | Output type for feature values (speratecsv, singlecsv, arrow, parquet). Default value: '--outputType=separatecsv' | string constant
+--features | String constant or comma-seperated list of constants requesting a group of features or particular feature. Default value: '--features=\*ALL\*' | string
+--filePattern | Regular expression to match image files in directories specified by parameters '--intDir' and '--segDir'. To match all the files, use '--filePattern=.\*' | string
+--intDir | Directory of intensity image collection | path
+--outDir | Output directory | path
+--segDir | Directory of labeled image collection | path
+--useGpu | ${\color{red}\textsf{(optional)}}$ Calculate compute-expensive features on an NVIDIA GPU device specified by parameter --gpuDeviceID. Default: '--useGpu=false'. Example: --useGpu=true | boolean
+--gpuDeviceID | ${\color{red}\textsf{(optional)}}$ ID of a GPU device to be used when '--useGpu=true'. Default: '--gpuDeviceID=0'. Example 1 (single GPU device): '--useGpu=true --gpuDeviceID=2' to strictly use device 2. Example 2 (multiple GPU devices, usually in SLURM scenarios): '--useGpu=true --gpuDeviceID=0,1,3' to use the GPU device having maximum free RAM of devices 0, 1, and 3. | integer or list of integers
+--coarseGrayDepth | ${\color{red}\textsf{(optional)}}$ Custom number of greyscale level bins used in texture features. Default: '--coarseGrayDepth=256' | integer
+--glcmAngles | ${\color{red}\textsf{(optional)}}$ Enabled direction angles of the GLCM feature. Superset of values: 0, 45, 90, and 135. Default: '--glcmAngles=0,45,90,135' | list of integers
+--intSegMapDir | ${\color{red}\textsf{(optional)}}$ Data collection of the ad-hoc intensity-to-mask file mapping. Must be used in combination with parameter '--intSegMapFile' | path
+--intSegMapFile | ${\color{red}\textsf{(optional)}}$ Name of the text file containing an ad-hoc intensity-to-mask file mapping. The files are assumed to reside in corresponding intensity and label collections. Must be used in combination with parameter '--intSegMapDir' | string
+--pixelDistance | ${\color{red}\textsf{(optional)}}$ Number of pixels to treat ROIs within specified distance as neighbors. Default value: '--pixelDistance=5' | integer
+--pixelsPerCentimeter | ${\color{red}\textsf{(optional)}}$ Number of pixels in centimeter used by unit length-related features. Default value: 0 | real
+--ramLimit | ${\color{red}\textsf{(optional)}}$ Amount of memory not to exceed by Nyxus, in megabytes. Default value: 50\% of available memory. Example: '--ramLimit=2000' to use 2,000 megabytes | integer
+--reduceThreads | ${\color{red}\textsf{(optional)}}$ Number of CPU threads used on the feature calculation step. Default: '--reduceThreads=1' | integer
+--skiproi | ${\color{red}\textsf{(optional)}}$ Skip ROIs having specified labels. Example: '--skiproi=image1.tif:2,3,4;image2.tif:45,56' | string
+--tempDir | ${\color{red}\textsf{(optional)}}$ Directory used by temporary out-of-RAM objects. Default value: system temporary directory | path
+--hsig | ${\color{red}\textsf{(optional)}}$ Channel signature Example: "--hsig=_c" to match images whose file names have channel info starting substring '_c' like in 'p0_y1_r1_c1.ome.tiff' | string
+--hpar | ${\color{red}\textsf{(optional)}}$ Channel number that should be used as a provider of parent segments. Example: '--hpar=1' | integer
+--hchi | ${\color{red}\textsf{(optional)}}$ Channel number that should be used as a provider of child segments. Example: '--hchi=0' | integer
+--hag | ${\color{red}\textsf{(optional)}}$ Name of a method how to aggregate features of segments recognized as children of same parent segment. Valid options are 'SUM', 'MEAN', 'MIN', 'MAX', 'WMA' (weighted mean average), and 'NONE' (no aggregation, instead, same parent child segments will be laid out horizontally) | string
+--fpimgdr | ${\color{red}\textsf{(optional)}}$ Desired dynamic range of voxels of a floating point TIFF image. Example: --fpimgdr=240 makes intensities be read in range 0-240. Default value: 10e4 | unsigned integer
+--fpimgmin | ${\color{red}\textsf{(optional)}}$ Minimum intensity of voxels of a floating point TIFF image. Default value: 0.0 | real
+--fpimgdr | ${\color{red}\textsf{(optional)}}$ Maximum intensity of voxels of a floating point TIFF image. Default value: 1.0 | real
+
 ---
 
-### Example: Running Nyxus to process images of specific image channel
+## Examples
+
+<span style="color:blue">Example 1:</span> __Running Nyxus to process images of specific image channel__
 
 Suppose we need to process intensity/mask images of channel 1 :
+```    
+./nyxus --features=*all_intensity*,*basic_morphology* --intDir=/path/to/intensity/images --segDir=/path/to/mask/images --outDir=/path/to/output --filePattern=.*_c1\.ome\.tif --outputType=singlecsv 
 ```
-./nyxus --features=*all_intensity*,*basic_morphology* --intDir=/home/ec2-user/data-ratbrain/int --segDir=/home/ec2-user/data-ratbrain/seg --outDir=/home/ec2-user/work/output-ratbrain --filePattern=.*_c1\.ome\.tif --csvFile=singlecsv 
-```
-### Example: Running Nyxus to process specific image 
+<span style="color:blue">Example 2:</span> __Running Nyxus to process specific image__
 
 Suppose we need to process intensity/mask file p1_y2_r68_c1.ome.tif :
 ```
-./nyxus --features=*all_intensity*,*basic_morphology* --intDir=/home/ec2-user/data-ratbrain/int --segDir=/home/ec2-user/data-ratbrain/seg --outDir=/home/ec2-user/work/output-ratbrain --filePattern=p1_y2_r68_c1\.ome\.tif --csvFile=singlecsv 
+./nyxus --features=*all_intensity*,*basic_morphology* --intDir=/path/to/intensity/images --segDir=/path/to/mask/images --outDir=/path/to/output --filePattern=p1_y2_r68_c1\.ome\.tif --outputType=singlecsv 
 ```
 
-### Example: Running Nyxus to extract only intensity and basic morphology features
+<span style="color:blue">Example 3:</span> __Running Nyxus to extract only intensity and basic morphology features__
 
 ```
-./nyxus --features=*all_intensity*,*basic_morphology* --intDir=/home/ec2-user/data-ratbrain/int --segDir=/home/ec2-user/data-ratbrain/seg --outDir=/home/ec2-user/work/output-ratbrain --filePattern=.* --csvFile=singlecsv 
+./nyxus --features=*all_intensity*,*basic_morphology* --intDir=/path/to/intensity/images --segDir=/path/to/mask/images --outDir=/path/to/output --filePattern=.* --outputType=singlecsv 
 ```
 
-## Nested features 
+<span style="color:blue">Example 4:</span> __Skipping specified ROIs while extracting features__
 
-A separate command line executable "nyxushie" for the hierarchical ROI analysis by finding nested ROIs and aggregating features of child ROIs within corresponding parent features is available. Its command line format is:
+Suppose we need to blacklist ROI labels 2 and 3 from the kurtosis feature extraction globally, in each image. The command line way to do that is using option __--skiproi__ :
+```shell 
+./nyxus --skiproi=2,3 --features=KURTOSIS --intDir=/path/to/intensity/images --segDir=/path/to/mask/images --outDir=/path/to/output --filePattern=.* --outputType=singlecsv 
 ```
-nyxushie <segment image collection dir> <file pattern> <channel signature> <parent channel> <child channel> <features dir> [-aggregate=<aggregation method>]
+
+As a result, the default feature extraction result produced without option --skiproi looking like
+
+<pre>
+          mask_image  intensity_image  label    KURTOSIS
+0    p0_y1_r1_c0.tif  p0_y1_r1_c0.tif      1   -0.134216
+1    p0_y1_r1_c0.tif  p0_y1_r1_c0.tif      2   -0.130024<b>
+2    p0_y1_r1_c0.tif  p0_y1_r1_c0.tif      3   -1.259801
+3    p0_y1_r1_c0.tif  p0_y1_r1_c0.tif      4   -0.934786</b>
+4    p0_y1_r1_c0.tif  p0_y1_r1_c0.tif      5   -1.072111
+..          ...             ...           ...      ...
+</pre>
+
+will start looking like 
+
+<pre>
+          mask_image  intensity_image  label    KURTOSIS
+0    p0_y1_r1_c0.tif  p0_y1_r1_c0.tif      1   -0.134216
+1    p0_y1_r1_c0.tif  p0_y1_r1_c0.tif      4   -0.934786
+2    p0_y1_r1_c0.tif  p0_y1_r1_c0.tif      5   -1.072111
+3    p0_y1_r1_c0.tif  p0_y1_r1_c0.tif      6   -0.347741
+4    p0_y1_r1_c0.tif  p0_y1_r1_c0.tif      7   -1.283468
+..          ...             ...           ...      ...
+</pre>
+
+
+Note the comma character separator <span style="background-color:lightgrey">&nbsp;&nbsp;<b>,</b>&nbsp;&nbsp;</span> in the blacklisted ROI label list.
+
+If we need to blacklist ROI labels 15 and 16 only in image image421.tif ROI label 17 in image image422.tif, we can do it via a per-file blacklist :
 ```
-where 
-
-*\<segment image collection dir\>* is directory of the segment images collection ;
-
-*\<file pattern\>* is a regular expression to filter files in \<segment image collection dir\> ;
-
-*\<channel signature\>* is a signature of the channel part in an image file name ;
-
-*\<parent channel\>* is an integer channel number where parent ROIs are expected ;
-
-*\<child channel\>* is an integer channel number where child ROIs are expected ;
-
-*\<features dir\>* is a directory used as the output of parent-child ROI relations and, if aggregation is requested, where CSV files of Nyxus features produced with Nyxus command line option --csvfile=separatecsv is located ;
-
-(optional) *\<aggregation method\>* is a method instructing how to aggregate child ROI features under a parent ROI. 
-
-Valid aggregation method options are: SUM, MEAN, MIN, MAX, or WMA (weighted mean average).
-
-__Example__: we need to process collection of mask images located in directory "\~/data/image-collection1/seg" considering only images named "train_.*\\.tif" whose channel information begins with characters "\_ch" (\_ch0, \_ch1, etc.) telling Nyxushie to treat channel 1 images as source of parent ROIs and channel 0 images as source of child ROIs. The output directory needs to be "\~/results/result1". The command line will be
+./nyxus --skiproi=image421.tif:15,16;image421.tif:17 --features=KURTOSIS --intDir=/path/to/intensity/images --segDir=/path/to/mask/images --outDir=/path/to/output --filePattern=.* --outputType=singlecsv 
 ```
-nyxushie ~/data/image-collection1/seg train_.*\\.tif _ch 1 0 ~/results/result1
+Note the colon character <span style="background-color:lightgrey">&nbsp;&nbsp;<b>:</b>&nbsp;&nbsp;</span> between the file name and  backlisted labels within this file and semicolon character separator <span style="background-color:lightgrey">&nbsp;&nbsp;<b>;</b>&nbsp;&nbsp;</span> of file blacklists.
+
+<span style="color:blue">Example 5:</span> __Skipping specified ROIs while extracting features (via Python API)__
+
+The Nyxus Python API equivalent of global ROI blacklisting is implemented by method __blacklist_roi(*string*)__ called before a call of method __featurize...()__, for example, labels 15, 16, and 17 can be globally blacklisted as follows:
+```python
+from nyxus import Nyxus
+nyx = Nyxus(features=["KURTOSIS"])
+nyx.blacklist_roi('15,16,17')
+features = nyx.featurize_directory (intensity_dir="/path/to/intensity/images", label_dir="/path/to/mask/images", file_pattern=".*")
 ```
+
+Similarly, per-file ROI blacklists are defined in a way similar to the command line interface:
+```python
+from nyxus import Nyxus
+nyx = Nyxus(features=["KURTOSIS"])
+nyx.blacklist_roi('p0_y1_r1_c0.ome.tif:15,16;p0_y1_r2_c0.ome.tif:17')
+features = nyx.featurize_directory (intensity_dir="/path/to/intensity/images", label_dir="/path/to/mask/images", file_pattern=".*")
+```
+
+See also methods __clear_roi_blacklist()__ and __roi_blacklist_get_summary()__ .
+
+## Nested ROIs 
+
+Hierarchical ROI analysis in a form of finding ROIs nested geometrically as nested AABBs and aggregating features of child ROIs within corresponding parent is available as an optional extra step after the feature extraction of the whole image set is finished. To enable this step, all the command line options '--hsig', '--hpar', '--hchi', and '--hag' need to have non-blank valid values. 
+
+Valid aggregation options are SUM, MEAN, MIN, MAX, WMA (weighted mean average), or NONE (no aggregation).
+
+<span style="color:blue">Example 6:</span> __Processing an image set with nested ROI postprocessing__ 
+
+```
+nyxus --features=*ALL_intensity* --intDir=/path/to/intensity/images --segDir=/path/to/mask/images --outDir=/path/to/output/directory --filePattern=.* --outputType=separatecsv --reduceThreads=4 --hsig=_c --hpar=1 --hchi=0 --hag=WMA 
+```
+
+As a result, 2 additional CSV files will be produced for each mask image whose channel number matches the value of option '--hpar': file 
+
+```
+<imagename>_nested_features.csv
+``` 
+
+where features of the detected child ROIs are laid next to their parent ROIs on same lines and auxiliary file 
+
+```
+<imagename>_nested_relations.csv
+``` 
+
+serving as a relational table of  parent and child ROI labels within parent ROI channel image ```<imagename>```.
 
 ### Nested features Python API
 
@@ -221,7 +500,7 @@ The `featurize` method takes in the parent-child mapping along with the features
 is provided to the constructor, this method will return a pivoted DataFrame where the rows are the ROI labels and the columns are grouped by the features.
 
 
-__Example__: Using aggregate functions
+__Example 7__: Using aggregate functions
 
 ``` python
 
@@ -268,7 +547,7 @@ and the aggregated DataFrame is
 
 ```
 
-__Example__: Without aggregate functions
+<span style="color:blue">Example 8:</span> __Without aggregate functions__
 
 ``` python
 
@@ -304,54 +583,85 @@ the parent-child map remains the same but the `featurize` result becomes
 ```
 
 ## Building from source
+Nyxus uses `CMake` as the build system and needs a `C++17` supported compiler to build from the source.
 
-Nyxus can either be build inside a `conda` environment or independently outside of it. For the later case, we provide a script to make it easier to download and build all the necessary dependencies.
+### __Dependencies__
+To build Nyxus from source, several build dependencies are needed to be satisfied. These dependencies arise from Nyxus's need to read and write various data format. The dependencies are listed below.
+* Tiff Support:  libtiff, libdeflate, zlib
+* Zarr Support: z5, xtensor, nlohman_json, blosc, zlib
+* Dicom Support: dcmtk, fmjpeg, zlib
+* Apache Arrow Support: arrow-cpp, pyarrow
+* Python Interface: pybind11
 
-### Inside Conda
-Nyxus uses a CMake build system. To build the command line interface, pass `-DBUILD_CLI=ON` in the `cmake` command. For building with GPU support, use `-DUSEGPU=ON` flag in the `cmake` command. Here are the few notes on building with GPU support.
+These packages also have underlying dependencies and at times, these dependency resolution may appear challenging. We prefer     `conda` to help with resolving these dependencies. However, for users without access to a `conda` enviornment, we have also provided installation script to build and install all the dependencies except `Apache Arrow`.
 
-* Currently, GPU builds on Mac OS is not supported. 
-* Due to the limitation of CUDA Development toolkit, upto GCC 9.X versions can be used on Linux. 
-* On Windows, we assume the correct version of CUDA toolkit and compiler is installed that is compatible with the Microsoft Visual Studio C++ compiler. 
+By default, Nyxus can be built with a minimal set of dependecies (Tiff support and Python interface). To build Nyxus with all the supported IO options mentioned above, pass `-DALLEXTRAS=ON` in the `cmake` command.
+
+### __Adding GPU Support__
+Nyxus also can be build with NVIDIA GPU support. To do so, a `CUDA` Development toolkit compatible with the host `C++` compiler need to be present in the system. For building with GPU support, pass `-DUSEGPU=ON` flag in the `cmake` command. 
+
+### __Inside Conda__
+To build the command line interface, pass `-DBUILD_CLI=ON` in the `cmake` command.
+
 
 Below is an example of how to build Nyxus inside a `conda` environment on Linux.
 
 ```bash
+conda create -n nyxus_build python=3.10
+conda activate nyxus_build
 git clone https://github.com/PolusAI/nyxus.git
 cd nyxus
-conda install -y -c conda-forge --file ci-utils/envs/conda_cpp.txt --file ci-utils/envs/conda_linux_compiler.txt --file ci-utils/envs/conda_py.txt --file ci-utils/envs/conda_linux_gpu.txt
+conda install mamba -c conda-forge
+mamba install -y -c conda-forge --file ci-utils/envs/conda_cpp.txt 
+export NYXUS_DEP_DIR=$CONDA_PREFIX
 mkdir build
 cd build
-cmake -DBUILD_CLI=ON -DUSEGPU=ON -DCMAKE_PREFIX_PATH=$CONDA_PREFIX -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX ..
+cmake -DBUILD_CLI=ON -DALLEXTRAS=ON  -DUSEGPU=ON ..
 make -j4
 ```
-If you are building on Mac or Windows, skip the dependencies from `ci-utils/envs/conda_linux_compiler.txt` and `ci-utils/envs/conda_linux_gpu.txt`
 
 To install the python package in the `conda` environment on Linux, use the following direction.
 ```bash
+conda create -n nyxus_build python=3.10
+conda activate nyxus_build
 git clone https://github.com/PolusAI/nyxus.git
 cd nyxus
-conda install -y -c conda-forge --file ci-utils/envs/conda_cpp.txt --file ci-utils/envs/conda_linux_compiler.txt --file ci-utils/envs/conda_linux_gpu.txt --file ci-utils/envs/conda_py.txt
-CMAKE_ARGS=" -DBUILD_CLI=ON -DUSEGPU=ON -DCMAKE_PREFIX_PATH=$CONDA_PREFIX -DCMAKE_INSTALL_PREFIX=$CONDA_PREFIX " python setup.py install
+conda install mamba -c conda-forge
+mamba install -y -c conda-forge --file ci-utils/envs/conda_cpp.txt --file ci-utils/envs/conda_py.txt
+export NYXUS_DEP_DIR=$CONDA_PREFIX
+CMAKE_ARGS="-DUSEGPU=ON -DALLEXTRAS=ON -DPython_ROOT_DIR=$CONDA_PREFIX -DPython_FIND_VIRTUALENV=ONLY" python -m pip install . -vv
 ```
 
-We also provide an example script that downloads `conda`, installs the necessary dependencies and then builds both the CLI and the python library on Linux. To run the script, do the following.
-```bash
-git clone https://github.com/PolusAI/nyxus.git
-cd nyxus/ci-utils
-./build_conda.sh ..
-```
-### Without Using Conda
-To build Nyxus outside of a `conda` environment, use the following example.
+### __Without Using Conda__
+To build Nyxus outside of a `conda` environment, we will first need to build and install all the required and optional dependecies. `ci-utils/install_prereq_windwos.bat` and `ci-utils/install_prereq_linux.sh` performs the task for Windows and Linux (and Mac) respectively. These script take a `--min_build yes` option to only build the minimal dependencies. Below, we provide an example for Windows OS.
+
 ```bash
 git clone https://github.com/PolusAI/nyxus.git
 cd nyxus
 mkdir build
 cd build
-bash ../ci-utils/install_prereq_linux.sh
-cmake -DBUILD_CLI=ON -DUSEGPU=ON -DCMAKE_PREFIX_PATH=./local_install -DCMAKE_INSTALL_PREFIX=./local_install ..
-make -j4
+..\ci-utils\install_prereq_windows.bat
+cmake -DBUILD_CLI=ON -DUSEGPU=ON -DALLEXTRAS=ON -DCMAKE_PREFIX_PATH=.\local_install -DCMAKE_INSTALL_PREFIX=.\local_install ..
+cmake --build . --config Release
+set PATH=%PATH%;%cd%\local_install\bin
 ```
+To install the python package in the environment on Linux, use the following direction.
+
+```bash
+python -m virtualenv venv
+venv\Scripts\activate.bat
+git clone https://github.com/PolusAI/nyxus.git
+cd nyxus
+mkdir build_dep
+cd build_dep
+..\ci-utils\install_prereq_windows.bat
+cd ..
+set NYXUS_DEP_DIR=%cd%\build_dep\local_install
+set CMAKE_ARGS=-DUSEGPU=ON -DALLEXTRAS=ON
+python -m pip install . -vv
+xcopy /E /I /y %NYXUS_DEP_DIR%\bin\*.dll %VIRTUAL_ENV%\lib\site-packages\nyxus
+```
+Note that, in both cases, the `dll`s of the dependencies need to be in the `PATH` (for CLI) or in the `site-packages` location (for Python package).
 
 ## Running via Docker 
 Running Nyxus from a local directory freshly made Docker container is a good idea. It allows one to test-run conteinerized Nyxus before it reaches Docker cloud deployment.
@@ -367,25 +677,8 @@ docker pull polusai/nyxus
 
 The following command line is an example of running the dockerized feature extractor (image hash 87f3b560bbf2) with only intensity features selected:
 ```
-docker run -it [--gpus all] --mount type=bind,source=/images/collections,target=/data 87f3b560bbf2 --intDir=/data/c1/int --segDir=/data/c1/seg --outDir=/data/output --filePattern=.* --csvFile=separatecsv --features=entropy,kurtosis,skewness,max_intensity,mean_intensity,min_intensity,median,mode,standard_deviation
+docker run -it [--gpus all] --mount type=bind,source=/images/collections,target=/data 87f3b560bbf2 --intDir=/data/c1/int --segDir=/data/c1/seg --outDir=/data/output --filePattern=.* --outputType=separatecsv --features=entropy,kurtosis,skewness,max_intensity,mean_intensity,min_intensity,median,mode,standard_deviation
 ```
-
-### Install from sources and package into a Docker image
-
-If you want to build your own Nyxus Docker container we provide a convenient shell script:
-
-```
-./ci-utils/build-docker.sh
-```
-
-
-## Dependencies
-Nyxus is tested with Python 3.6+. Nyxus relies on the the following packages:
-
-[pybind11](https://github.com/pybind/pybind11) >= 2.8.1 <br>
-[libTIFF](http://www.libtiff.org) >= 3.6.1 <br>
-[Z5](https://github.com/constantinpape/z5) >=2.0.15 <br>
-Each of these dependencies also have hierarchical dependencies and so we recommend using the `conda` build system when building from source.
 
 ## WIPP Usage
 
@@ -406,8 +699,8 @@ Enter value for this parameter if neighbors touching cells needs to be calculate
 __Features:__
 Comma separated list of features to be extracted. If all the features are required, then choose option __*all*__.
 
-__Csvfile:__
-There are 2 options available under this category. __*Separatecsv*__ - to save all the features extracted for each image in separate csv file. __*Singlecsv*__ - to save all the features extracted from all the images in the same csv file.
+__Outputtype:__
+There are 4 options available under this category. __*Separatecsv*__ - to save all the features extracted for each image in separate csv file. __*Singlecsv*__ - to save all the features extracted from all the images in the same csv file. __*Arrow*__ - to save all the features extracted from all the images in Apache Arrow format. __*Parquet*__ - to save all the features extracted from all the images in Apache Parquet format
 
 __Embedded pixel size:__
 This is an optional parameter. Use this parameter only if units are present in the metadata and want to use those embedded units for the features extraction. If this option is selected, value for the length of unit and pixels per unit parameters are not required.

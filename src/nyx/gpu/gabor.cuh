@@ -54,10 +54,10 @@ namespace CuGabor{
      * @param out Results array
      * @param image Image to convolve
      * @param kernel Kernel
-     * @param image_n Widht of image
-     * @param image_m Heigh of image
+     * @param image_n Width of image
+     * @param image_m Height of image
      * @param kernel_n Width of kernel
-     * @param kernel_m Heigh of image
+     * @param kernel_m Height of image
      */
     bool conv_dud_gpu_fft(double* out, // must be zeroed
                     const unsigned int* image, 
@@ -81,5 +81,15 @@ namespace CuGabor{
     bool conv_dud_gpu_fft_multi_filter(double* out, 
                     const unsigned int* image, 
                     double* kernel, 
-                    int image_n, int image_m, int kernel_n, int kernel_m, int batch_size);
+                    int image_n, int image_m, int kernel_n, int kernel_m, int batch_size,
+                    double* dev_filterbank);
+    /**
+    * @brief Allocates device memory and sends there a host-side precalculated filter bank 'ho_filterbank' 
+    */
+    bool send_filterbank_2_gpuside (double** dev_filterbank, const double* ho_filterbank, size_t filterbank_len_all_batches);
+
+    /**
+    * @brief Copies device-side dense filter bank 'dev_Src' to preallocated 'dev_Dst' converting the dense to padded layout
+    */
+    bool dense_2_padded_filterbank (cufftDoubleComplex* dev_Dst, double* dev_Src, int y_rowsize, int y_colsize, int x_rowsize, int x_colsize, int batchsize);
 }

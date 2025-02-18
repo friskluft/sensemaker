@@ -17,52 +17,83 @@
 class GaborFeature: public FeatureMethod
 {
 public:
-    static bool required(const FeatureSet& fs) { return fs.isEnabled(GABOR); }
 
-    static const int num_features = 7;
+    const constexpr static std::initializer_list<Nyxus::Feature2D> featureset = { Nyxus::Feature2D::GABOR };
 
     GaborFeature();
-    
-    // Trivial ROI
+
+    static bool required(const FeatureSet& fs);
+   
+    //=== Trivial ROIs ===
     void calculate(LR& r);
 
     // Trivial ROI on GPU
     #ifdef USE_GPU
         void calculate_gpu(LR& r);
-        void calculate_gpu_multi_filter (LR& r);
-        static void gpu_process_all_rois( std::vector<int>& ptrLabels, std::unordered_map <int, LR>& ptrLabelData);
+        void calculate_gpu_multi_filter (LR& r, size_t roiidx);
+        static void gpu_process_all_rois (std::vector<int>& ptrLabels, std::unordered_map <int, LR>& ptrLabelData, size_t batch_offset, size_t batch_len);
     #endif
 
-    // Non-trivial
+    //=== Non-trivial ROIs ===
     void osized_add_online_pixel(size_t x, size_t y, uint32_t intensity) {}
     void osized_calculate(LR& r, ImageLoader& imloader);
 
     // Result saver
     void save_value(std::vector<std::vector<double>>& feature_vals);
 
+    static void extract (LR& roi);
     static void reduce(size_t start, size_t end, std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData);
 
+    //-------------- - User interface
+
+    // Aspect ratio of the Gaussian
+    static double gamma;            
+    // spatial frequency bandwidth (sigma to lambda)
+    static double sig2lam;          
+    // Size of the filter kernel
+    static int n;                    
+    // Frequency of the low-pass Gabor filter used to produce the reference baseline image
+    static double f0LP;             
+    // Threshold of the filtered at frequency f0[i] to baseline image ratio
+    static double GRAYthr;  
+
+    // Pairs of orientation angles of the Gaussian (in radians) and frequency of corresponding highpass filters
+    static std::vector<std::pair<double, double>> f0_theta_pairs;
+
+    // Returns the angle of i-th pair of 'f0_theta_pairs'
+    static double get_theta_in_degrees (int i);
+
+    static bool init_class();
+
 private:
-    // Trivial ROIs
-    void conv_ddd (double* c, double* a, double* b, int na, int ma, int nb, int mb);
+
+    // Result cache
+    std::vector<double> fvals;
+
+    //=== Trivial ROIs ===
+
+    // Convolves an uint-valued image with double-valued kernel
     void conv_dud (double* c, const unsigned int* a, double* b, int na, int ma, int nb, int mb);
-    void conv_parallel (double* c, double* a, double* b, int na, int ma, int nb, int mb);
-    void conv_parallel_dud (double* c, const unsigned int* a, double* b, int na, int ma, int nb, int mb);
 
     // Creates a non-normalized Gabor filter
-    void Gabor (
+    static void Gabor (
         double* Gex,    // buffer of size n*n*2
         double f0, 
         double sig2lam, 
         double gamma, 
         double theta, 
         double fi, 
-        int n);
+        int n, 
+        std::vector<double>& tx, 
+        std::vector<double>& ty);
+
+    // Buffers for Gabor amplitudes. Used by method Gabor()
+    std::vector<double> tx, ty;
 
     // Computes Gabor energy 
     void GaborEnergy (
         const ImageMatrix& Im, 
-        PixIntens* /* double* */ out, 
+        PixIntens* out, 
         double* auxC, 
         double* Gex, 
         double f0, 
@@ -83,40 +114,50 @@ private:
         double theta, 
         int n);
 
-    void GaborEnergyGPUMultiFilter (
-        const ImageMatrix& Im, 
-        std::vector<std::vector<PixIntens>>& /* double* */ out, 
-        double* auxC, 
+    void GaborEnergyGPUMultiFilter(
+        const ImageMatrix& Im,
+        std::vector<std::vector<PixIntens>>& out,
+        double* auxC,
         double* Gexp,
-        std::vector<double>& f, 
-        double sig2lam, 
-        double gamma, 
-        double theta, 
+        const std::vector<double>& f0,     // frequencies matching 'thetas'
+        double sig2lam,
+        double gamma,
+        const std::vector<double>& thetas, // thetas matching frequencies in 'f'
         int n,
         int num_filters);
     #endif
 
-    // Nontrivial ROIs
-    void osized_GaborEnergy(
-        ImageLoader& imloader,
-        ReadImageMatrix_nontriv& Im,
-        WriteImageMatrix_nontriv& out,
-        WriteImageMatrix_nontriv& auxC,
+    //=== Nontrivial ROIs ===
+
+    void GaborEnergy_NT2 (
+        WriteImageMatrix_nontriv& Im,
         double* Gexp,
         double f0,
         double sig2lam,
         double gamma,
         double theta,
-        int n);
-    void osized_Gabor(double* Gex, double f0, double sig2lam, double gamma, double theta, double fi, int n);
-    void osized_conv_dud(
-        ImageLoader& imloader,
-        WriteImageMatrix_nontriv& C,
-        ReadImageMatrix_nontriv& A,
+        int n, 
+        bool max_or_threshold,
+        double threshold, 
+        double & max_val, 
+        size_t & cnt);
+
+    void conv_dud_NT (
+        double* C,
+        WriteImageMatrix_nontriv& A,
         double* B,
         int na, int ma, int nb, int mb);
 
-    // Result cache
-    std::vector<double> fvals;
+    void GetStats_NT (WriteImageMatrix_nontriv& I, Moments2& moments2);
+
+    // members referenced from init_class()
+    static void create_filterbank();
+    static int n_bank_filters;
+    static std::vector<std::vector<double>> filterbank;
+    #ifdef USE_GPU
+        static bool send_filterbank_2_gpuside();
+        static std::vector<double> ho_filterbank;
+        static double* dev_filterbank;
+    #endif
 };
 
