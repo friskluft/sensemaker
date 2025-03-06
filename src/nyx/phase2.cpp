@@ -685,6 +685,8 @@ namespace Nyxus
 		}
 		#endif
 
+		VERBOSLVL2 (std::cout << "\t@@@ leaving process_wholeslide_as_roi()\n");
+
 		// no need to calculate neighbor features, returning
 		return true;
 	}

@@ -185,7 +185,7 @@ namespace Nyxus
 		Nyxus::colname_roi_label 
 	};
 
-	std::mutex fileMutex;
+	static std::mutex mutex1;
 
 	bool save_features_2_csv_roi (
 		const LR & r, 
@@ -193,7 +193,7 @@ namespace Nyxus
 		const std::string & mfpath, 
 		const std::string & outdir)
 	{
-		std::lock_guard<std::mutex> lock (fileMutex); // Lock the mutex
+		std::lock_guard<std::mutex> lg (mutex1); // Lock the mutex
 
 		// Non-exotic formatting for compatibility with the buffer output (Python API, Apache)
 		constexpr int VAL_BUF_LEN = 450;
@@ -636,8 +636,127 @@ namespace Nyxus
 		return true;
 	}
 
-	std::vector<std::tuple<std::vector<std::string>, int, std::vector<double>>> get_feature_values() {
+	std::vector<std::tuple<std::vector<std::string>, int, std::vector<double>>> get_feature_values_roi (
+		const LR& r,
+		const std::string& ifpath,
+		const std::string& mfpath)
+	{
+		std::vector<std::tuple<std::vector<std::string>, int, std::vector<double>>> features;
 
+		// user's feature selection
+		std::vector<std::tuple<std::string, int>> F = theFeatureSet.getEnabledFeatures();
+
+		// numeric columns
+		std::vector<double> fvals;
+
+		for (auto& enabdF : F)
+		{
+			auto fc = std::get<1>(enabdF);
+			auto vv = r.get_fvals(std::get<1>(enabdF));
+
+			// Parameterized feature
+			// --GLCM family
+			bool glcmFeature = std::find(GLCMFeature::featureset.begin(), GLCMFeature::featureset.end(), (Feature2D)fc) != GLCMFeature::featureset.end();
+			bool nonAngledGlcmFeature = std::find(GLCMFeature::nonAngledFeatures.begin(), GLCMFeature::nonAngledFeatures.end(), (Feature2D)fc) != GLCMFeature::nonAngledFeatures.end(); // prevent output of a non-angled feature in an angled way
+			if (glcmFeature && nonAngledGlcmFeature == false)
+			{
+				// Mock angled values if they haven't been calculated for some error reason
+				if (vv.size() < GLCMFeature::angles.size())
+					vv.resize(GLCMFeature::angles.size(), 0.0);
+				// Output the sub-values
+				int nAng = (int)GLCMFeature::angles.size();
+				for (int i = 0; i < nAng; i++)
+				{
+					fvals.push_back(vv[i]);
+				}
+				// Proceed with other features
+				continue;
+			}
+
+			// --GLRLM family
+			bool glrlmFeature = std::find(GLRLMFeature::featureset.begin(), GLRLMFeature::featureset.end(), (Feature2D)fc) != GLRLMFeature::featureset.end();
+			bool nonAngledGlrlmFeature = std::find(GLRLMFeature::nonAngledFeatures.begin(), GLRLMFeature::nonAngledFeatures.end(), (Feature2D)fc) != GLRLMFeature::nonAngledFeatures.end(); // prevent output of a non-angled feature in an angled way
+			if (glrlmFeature && nonAngledGlrlmFeature == false)
+			{
+				// Polulate with angles
+				int nAng = 4;
+				for (int i = 0; i < nAng; i++)
+				{
+					fvals.push_back(vv[i]);
+				}
+				// Proceed with other features
+				continue;
+			}
+
+			// --Gabor
+			if (fc == (int)Feature2D::GABOR)
+			{
+				for (auto i = 0; i < GaborFeature::f0_theta_pairs.size(); i++)
+				{
+					fvals.push_back(vv[i]);
+				}
+
+				// Proceed with other features
+				continue;
+			}
+
+			// --Zernike feature values
+			if (fc == (int)Feature2D::ZERNIKE2D)
+			{
+				for (int i = 0; i < ZernikeFeature::NUM_FEATURE_VALS; i++)
+				{
+					fvals.push_back(vv[i]);
+				}
+
+				// Proceed with other features
+				continue;
+			}
+
+			// --Radial distribution features
+			if (fc == (int)Feature2D::FRAC_AT_D)
+			{
+				for (auto i = 0; i < RadialDistributionFeature::num_features_FracAtD; i++)
+				{
+					fvals.push_back(vv[i]);
+				}
+				// Proceed with other features
+				continue;
+			}
+			if (fc == (int)Feature2D::MEAN_FRAC)
+			{
+				for (auto i = 0; i < RadialDistributionFeature::num_features_MeanFrac; i++)
+				{
+					fvals.push_back(vv[i]);
+				}
+				// Proceed with other features
+				continue;
+			}
+			if (fc == (int)Feature2D::RADIAL_CV)
+			{
+				for (auto i = 0; i < RadialDistributionFeature::num_features_RadialCV; i++)
+				{
+					fvals.push_back(vv[i]);
+				}
+				// Proceed with other features
+				continue;
+			}
+
+			fvals.push_back(vv[0]);
+		}
+
+		// other columns
+		std::vector<std::string> textcols;
+		textcols.push_back ((fs::path(ifpath)).filename().u8string());
+		textcols.push_back ("");
+		int roilabl = 1; // whole-slide roi #
+
+		features.push_back (std::make_tuple(textcols, roilabl, fvals));
+
+		return features;
+	}
+
+	std::vector<std::tuple<std::vector<std::string>, int, std::vector<double>>> get_feature_values() 
+	{
 		std::vector<std::tuple<std::vector<std::string>, int, std::vector<double>>> features;
 
 		// Sort the labels

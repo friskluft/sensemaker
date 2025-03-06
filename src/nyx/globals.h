@@ -67,8 +67,17 @@ namespace Nyxus
 	bool save_features_2_csv (const std::string & intFpath, const std::string & segFpath, const std::string & outputDir);
 	bool save_features_2_csv_roi (const LR& r, const std::string& ifpath, const std::string& mfpath, const std::string& outdir);
 	bool save_features_2_buffer (ResultsCache& results_cache);	
-	
-	std::vector<std::tuple<std::vector<std::string>, int, std::vector<double>>> get_feature_values();	
+	bool save_features_2_buffer_roi(
+		ResultsCache& rescache,
+		const LR& r,
+		const std::string& ifpath,
+		const std::string& mfpath);
+
+	std::vector<std::tuple<std::vector<std::string>, int, std::vector<double>>> get_feature_values();
+	std::vector<std::tuple<std::vector<std::string>, int, std::vector<double>>> get_feature_values_roi (
+		const LR& r,
+		const std::string& ifpath,
+		const std::string& mfpath);
 	std::vector<std::string> get_header(const std::vector<std::tuple<std::string, int>>& F );
 	std::string get_arrow_filename(const std::string& output_path, const std::string& default_filename, const SaveOption& arrow_file_type);
 

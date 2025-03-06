@@ -47,7 +47,7 @@ namespace Nyxus
 
 int main (int argc, char** argv)
 {
-	VERBOSLVL1 (std::cout << PROJECT_NAME << " /// " << PROJECT_VER << " /// (c) 2021-2023 Axle Informatics" << " Build of " << __TIMESTAMP__ << "\n")
+	VERBOSLVL1 (std::cout << PROJECT_NAME << " /// " << PROJECT_VER << " /// (c) 2021-2025 Axle Research" << " Build of " << __TIMESTAMP__ << "\n")
 
 	if (! theEnvironment.parse_cmdline(argc, argv))
 		return 1;

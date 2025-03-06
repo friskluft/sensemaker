@@ -117,6 +117,8 @@ class Nyxus:
         Maximum intensity of voxels of a floating point TIFF image.
     ram_limit: int (optional)
         Maximum amount of ram to be used by Nyxus in megabytes
+    verbose: int (optional, default 0)
+        Level of diagnostic information in the standard output. Non-negative. 0 is no diagnostic output.
     """
 
     def __init__(
@@ -130,7 +132,7 @@ class Nyxus:
             'gabor_kersize', 'gabor_gamma', 'gabor_sig2lam', 'gabor_f0',
             'gabor_thold', 'gabor_thetas', 'gabor_freqs', 'channel_signature', 
             'parent_channel', 'child_channel', 'aggregate', 'dynamic_range', 'min_intensity',
-            'max_intensity', 'ram_limit'
+            'max_intensity', 'ram_limit', 'verbose'
         }
 
         # Check for unexpected keyword arguments
@@ -158,6 +160,7 @@ class Nyxus:
         min_intensity = kwargs.get('min_intensity', 0.0)
         max_intensity = kwargs.get('max_intensity', 1.0)
         ram_limit = kwargs.get('ram_limit', -1)
+        verb_lvl = kwargs.get('verbose', 0)
         
         if neighbor_distance <= 0:
             raise ValueError("Neighbor distance must be greater than zero.")
@@ -174,9 +177,11 @@ class Nyxus:
         if n_loader_threads < 1:
             raise ValueError("There must be at least one loader thread.")
                     
-        if using_gpu > -1 and not gpu_available():
+        if use_gpu_device > -1 and not gpu_available():
             raise ValueError ("No need to set GPU device ID because GPU is unavailable")
-    
+
+        if verb_lvl < 0:
+            raise ValueError ("verbosity must be non-negative")
 
         initialize_environment(
             2, # 2D
@@ -192,7 +197,8 @@ class Nyxus:
             min_intensity,
             max_intensity,
             False,
-            ram_limit)
+            ram_limit,
+            verb_lvl)
         
         self.set_gabor_feature_params(
             kersize = gabor_kersize,
@@ -650,7 +656,7 @@ class Nyxus:
         n_reduce_threads = params.get ('n_feature_calc_threads', 0)
         n_loader_threads = 1
         use_gpu_device = params.get ('use_gpu_device', -1)
-        verbosity_lvl = params.get ('verbose', 0)
+        verb_lvl = params.get ('verbose', 0)
         dynamic_range = params.get('dynamic_range', -1)
         min_intensity = params.get('min_intensity', -1)
         max_intensity = params.get('max_intensity', -1)
@@ -664,11 +670,11 @@ class Nyxus:
                                    n_reduce_threads,
                                    n_loader_threads,
                                    use_gpu_device,
-                                   verbosity_lvl,
                                    dynamic_range,
                                    min_intensity,
                                    max_intensity,
-                                   ram_limit)
+                                   ram_limit,
+                                   verb_lvl)
         
     def set_params(self, **params):
         """Sets parameters of the Nyxus class
@@ -709,6 +715,7 @@ class Nyxus:
             "min_intensity",
             "max_intensity",
             "ram_limit",
+            "verbose"
         ]
         
         environment_params = {}
@@ -724,7 +731,7 @@ class Nyxus:
             
             else:
                 if (key not in available_environment_params):
-                    raise ValueError(f"Invalid parameter {key}.")
+                    raise ValueError ("Invalid parameter: ", key)
                 else:
                     environment_params[key] = value
                 
@@ -880,6 +887,8 @@ class Nyxus3D:
         Minimum intensity of voxels of a floating point TIFF image.
     max_intensity: (optional, default 1.0)
         Maximum intensity of voxels of a floating point TIFF image.
+    verbose: int (optional, default 0)
+        Level of diagnostic information in the standard output. Non-negative. 0 is no diagnostic output.
     """
 
     def __init__(
@@ -910,6 +919,7 @@ class Nyxus3D:
         dynamic_range = kwargs.get('dynamic_range', 10000)
         min_intensity = kwargs.get('min_intensity', 0.0)
         max_intensity = kwargs.get('max_intensity', 1.0)
+        verb_lvl = kwargs.get ('verbose', 0)
         
         if neighbor_distance <= 0:
             raise ValueError("Neighbor distance must be greater than zero.")
@@ -933,6 +943,9 @@ class Nyxus3D:
 
         ram_limit = kwargs.get('ram_limit', -1)
 
+        if verb_lvl < 0:
+            raise ValueError ("verbosity must be non-negative")
+
         initialize_environment(
             3, # 3D
             features,
@@ -947,7 +960,8 @@ class Nyxus3D:
             min_intensity,
             max_intensity,
             False,
-            ram_limit)
+            ram_limit,
+            verb_lvl)
         
         # list of valid outputs that are used throughout featurize functions
         self._valid_output_types = ['pandas', 'arrowipc', 'parquet']
@@ -1074,7 +1088,7 @@ class Nyxus3D:
         n_reduce_threads = params.get ('n_feature_calc_threads', 0)
         n_loader_threads = 1
         use_gpu_device = params.get ('use_gpu_device', -1)
-        verbosity_lvl = params.get ('verbose', 0)
+        verb_lvl = params.get ('verbose', 0)
         dynamic_range = params.get('dynamic_range', -1)
         min_intensity = params.get('min_intensity', -1)
         max_intensity = params.get('max_intensity', -1)
@@ -1087,11 +1101,11 @@ class Nyxus3D:
                                    n_reduce_threads,
                                    n_loader_threads,
                                    use_gpu_device,
-                                   verbosity_lvl,
                                    dynamic_range,
                                    min_intensity,
                                    max_intensity,
-                                   ram_limit)
+                                   ram_limit,
+                                   verb_lvl)
         
     def set_params(self, **params):
         """Sets parameters of the Nyxus class
@@ -1277,6 +1291,8 @@ class ImageQuality:
         Minimum intensity of voxels of a floating point TIFF image.
     max_intensity: (optional, default 1.0)
         Maximum intensity of voxels of a floating point TIFF image.
+    verbose: int (optional, default 0)
+        Level of diagnostic information in the standard output. Non-negative. 0 is no diagnostic output.
     """
 
     def __init__(
@@ -1310,6 +1326,7 @@ class ImageQuality:
         min_intensity = kwargs.get('min_intensity', 0.0)
         max_intensity = kwargs.get('max_intensity', 1.0)
         ram_limit = kwargs.get('ram_limit', -1)
+        verb_lvl = kwargs.get ('verbose', 0)
         
         if neighbor_distance <= 0:
             raise ValueError("Neighbor distance must be greater than zero.")
@@ -1334,6 +1351,9 @@ class ImageQuality:
             print("No gpu available.")
             using_gpu = -1
 
+        if verb_lvl < 0:
+            raise ValueError ("verbosity must be non-negative")
+
         initialize_environment(
             2, # 2D
             features,
@@ -1348,7 +1368,8 @@ class ImageQuality:
             min_intensity,
             max_intensity,
             True,
-            ram_limit)
+            ram_limit,
+            verb_lvl)
         
         # list of valid outputs that are used throughout featurize functions
         self._valid_output_types = ['pandas', 'arrowipc', 'parquet']
@@ -1795,7 +1816,7 @@ class ImageQuality:
         n_reduce_threads = params.get ('n_feature_calc_threads', 0)
         n_loader_threads = 1
         use_gpu_device = params.get ('use_gpu_device', -1)
-        verbosity_lvl = params.get ('verbose', 0)
+        verb_lvl = params.get ('verbose', 0)
         dynamic_range = params.get('dynamic_range', -1)
         min_intensity = params.get('min_intensity', -1)
         max_intensity = params.get('max_intensity', -1)
@@ -1808,11 +1829,11 @@ class ImageQuality:
                                    n_reduce_threads,
                                    n_loader_threads,
                                    use_gpu_device,
-                                   verbosity_lvl,
                                    dynamic_range,
                                    min_intensity,
                                    max_intensity,
-                                   ram_limit)
+                                   ram_limit,
+                                   verb_lvl)
         
     def set_params(self, **params):
         """Sets parameters of the Nyxus class

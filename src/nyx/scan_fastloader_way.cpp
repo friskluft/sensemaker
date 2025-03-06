@@ -298,8 +298,10 @@ namespace Nyxus
 		}
 
 		// Phase 2: extract features
-		VERBOSLVL2(std::cout << "Extracting features\n";)
+		VERBOSLVL2(std::cout << "Extracting features\n");
 		process_wholeslide_as_roi (intens_fpath, imlo, theEnvironment.get_ram_limit(), fakeroi); //???????????? phase2.cpp / processTrivialRois ()
+
+		VERBOSLVL2(std::cout << "@@@leaving process_whole_slide()\n");
 
 		return true;
 	}

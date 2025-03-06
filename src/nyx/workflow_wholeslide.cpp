@@ -44,6 +44,8 @@
 		bool processIntSegImagePair (const std::string& intens_fpath, const std::string& label_fpath, int num_FL_threads, int filepair_index, int tot_num_filepairs);
 		bool process_whole_slide (const std::string& intens_fpath, ImageLoader & imlo, LR & fakeroi);
 
+		static std::mutex mutexApache1;
+
 		void handler1 (
 			const std::vector<std::string> & intensFiles, 
 			const std::vector<std::string> & labelFiles, 
@@ -77,6 +79,7 @@
 			LR fakeroi;
 			ok = process_whole_slide (p.fname_int, imlo, fakeroi); //?????????????? needs to be replaced with something specialized wholeslide ?????????    ok = processIntSegImagePair (ifp, lfp, 1/* ???????????? numFastloaderThreads*/, i, nf);
 
+			VERBOSLVL2(std::cout << "@@@handler1() saving features\n");
 
 			if (ok == false)
 			{
@@ -86,7 +89,12 @@
 
 			if (write_apache) 
 			{
-				auto [status, msg] = theEnvironment.arrow_stream.write_arrow_file(Nyxus::get_feature_values());
+				VERBOSLVL2(std::cout << "@@@handler1() saveOption == write_apache\n");
+
+				std::lock_guard<std::mutex> lg(mutexApache1);
+
+				auto [status, msg] = theEnvironment.arrow_stream.write_arrow_file (
+					Nyxus::get_feature_values_roi (fakeroi, p.fname_int, ""));
 
 				if (!status) 
 				{
@@ -97,7 +105,9 @@
 			else 
 				if (saveOption == SaveOption::saveCSV)
 				{
-					ok = save_features_2_csv_roi (fakeroi, p.fname_int, p.fname_int, outputPath); // true; //??????????? !!!! save_features_2_csv(p.fname_int, p.fname_int, outputPath);
+					VERBOSLVL2(std::cout << "@@@handler1() saveOption == SaveOption::saveCSV\n");
+
+					ok = save_features_2_csv_roi (fakeroi, p.fname_int, "", outputPath); // true; //??????????? !!!! save_features_2_csv(p.fname_int, p.fname_int, outputPath);
 
 					if (ok == false)
 					{
@@ -107,7 +117,9 @@
 				}
 				else
 				{
-					ok = save_features_2_buffer(theResultsCache);
+					VERBOSLVL2(std::cout << "@@@handler1() saveOption == buffer\n");
+
+					ok = save_features_2_buffer_roi (theResultsCache, fakeroi, p.fname_int, "");
 
 					if (ok == false)
 					{
@@ -115,6 +127,8 @@
 						rv = 2;
 					}
 				}
+
+			VERBOSLVL2(std::cout << "@@@handler1() done saving features\n");
 
 			theImLoader.close();
 
@@ -138,14 +152,17 @@
 				VERBOSLVL1(Stopwatch::print_stats());
 
 				// Details - also to a file
-				VERBOSLVL1(
-					fs::path p(theSegFname);
-				Stopwatch::save_stats(theEnvironment.output_dir + "/" + p.stem().string() + "_nyxustiming.csv");
-				);
+				//xxx		VERBOSLVL1(
+				//xxx			fs::path p(theSegFname);
+				//xxx			Stopwatch::save_stats(theEnvironment.output_dir + "/" + p.stem().string() + "_nyxustiming.csv")
+				//xxx				);
 			}
 			#endif
 
 			rv = 0; // success
+
+			VERBOSLVL2(std::cout << "@@@leaving handler1()\n");
+
 		}
 
 		typedef void (*functype1) (
@@ -320,9 +337,11 @@
 			{
 
 				theEnvironment.arrow_stream = ArrowOutputStream();
+				std::string afn = get_arrow_filename (outputPath, theEnvironment.nyxus_result_fname, saveOption);
+				VERBOSLVL2 (std::cout << "@@@ Arrow file name =" << afn << "\n");
 				auto [status, msg] = theEnvironment.arrow_stream.create_arrow_file(
 					saveOption,
-					get_arrow_filename(outputPath, theEnvironment.nyxus_result_fname, saveOption),
+					afn,
 					Nyxus::get_header(theFeatureSet.getEnabledFeatures()));
 
 				if (!status) {
@@ -343,6 +362,11 @@
 				for (int t=0; t < n_threads; t++)
 				{
 					size_t idx = j * n_threads + t;
+
+					// done?
+					if (idx + 1 > nf)
+						break;
+
 					int rval = 0;
 					T.push_back (std::async(std::launch::async, 
 						handler1, 
@@ -357,6 +381,8 @@
 				}
 
 			}
+
+			VERBOSLVL2(std::cout << "@@@ after running jobs 1\n");
 
 #ifdef CHECKTIMING
 			if (Stopwatch::inclusive())
@@ -404,6 +430,8 @@
 				}
 			}
 #endif
+
+			VERBOSLVL2(std::cout << "@@@ after running jobs 2\n");
 
 			return 0; // success
 		}
