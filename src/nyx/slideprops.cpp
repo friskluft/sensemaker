@@ -18,9 +18,6 @@ namespace Nyxus
 		std::unordered_set<int> U;	// unique ROI mask labels
 		std::unordered_map <int, LR> R;	// ROI data
 
-		//??????????????	// Reset per-image counters and extrema
-		//??????????????	LR::reset_global_stats();
-
 		int lvl = 0, // pyramid level
 			lyr = 0; //	layer
 

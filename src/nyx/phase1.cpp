@@ -4,12 +4,14 @@
 #include <map>
 #include <array>
 #include <regex>
+
 #ifdef WITH_PYTHON_H
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/numpy.h>
-namespace py = pybind11;
+	#include <pybind11/pybind11.h>
+	#include <pybind11/stl.h>
+	#include <pybind11/numpy.h>
+	namespace py = pybind11;
 #endif
+
 #include "environment.h"
 #include "globals.h"
 #include "helpers/timing.h"
@@ -145,8 +147,7 @@ namespace Nyxus
 					if (x >= fullwidth || y >= fullheight)
 						continue;
 
-					// Update pixel's ROI metrics
-					//??????????? feed_pixel_2_metrics(x, y, dataI[i], label, tileIdx); // Updates 'uniqueLabels' and 'roiData'
+					// Update whole slide's vROI metrics
 					PixIntens I = dataI[i];
 					minI = std::min (minI, I);
 					maxI = std::max (maxI, I);
@@ -170,10 +171,6 @@ namespace Nyxus
 		roi.aux_max = maxI;
 		roi.aabb.init_from_widthheight (fullwidth, fullheight);
 
-		//?????? // Per-slide UINT32 intensity range (conversion is done in theImLoader.load_tile(row, col) / LoadImage)
-		//?????? LR::slide_min_inten = minI;
-		//?????? LR::slide_max_inten = maxI;
-
 		return true;
 	}
 
@@ -186,9 +183,6 @@ namespace Nyxus
 		// by labels in feed_pixel_2_metrics_3D() to link ROIs with their image file origins
 		theIntFname = intens_fpath;
 		theSegFname = mask_fpath;
-
-		//????????????	// Reset per-image counters and extrema
-		//????????????	LR::reset_global_stats();
 
 		int lvl = 0, // Pyramid level
 			lyr = 0; //	Layer
@@ -208,7 +202,7 @@ namespace Nyxus
 			sprp.fname_seg = mfpath;
 
 			// Extract features from this intensity-mask pair 
-			if (theImLoader.open(sprp) == false)	//???????????????????? ifpath, mfpath
+			if (theImLoader.open(sprp) == false)
 			{
 				std::cerr << "Error opening a file pair with ImageLoader. Terminating\n";
 				return false;
@@ -252,12 +246,7 @@ namespace Nyxus
 						// Skip non-mask pixels
 						auto label = dataL[i];
 						if (!label)
-						{
-							//????????????????	// Update zero-background area
-							//????????????????	zero_background_area++;
-
 							continue;
-						}
 
 						int y = row * th + i / tw,
 							x = col * tw + i % tw;

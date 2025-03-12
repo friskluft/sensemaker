@@ -71,7 +71,7 @@ namespace Nyxus
 	{
 		// Update basic ROI info (info that doesn't require costly calculations)
 		LR& r = roiData[label];
-		feed_pixel_2_cache_LR(x, y, intensity, r); //??????????? r.raw_pixels.push_back(Pixel2(x, y, intensity));
+		feed_pixel_2_cache_LR(x, y, intensity, r);
 	}
 
 	void feed_pixel_2_cache_3D (int x, int y, int z, PixIntens intensity, int label)

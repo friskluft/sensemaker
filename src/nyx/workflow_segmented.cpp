@@ -46,102 +46,99 @@ namespace Nyxus
 			VERBOSLVL2(
 				// Report the amount of free RAM
 				unsigned long long freeRamAmt = Nyxus::getAvailPhysMemory();
-			static unsigned long long initial_freeRamAmt = 0;
-			if (initial_freeRamAmt == 0)
-				initial_freeRamAmt = freeRamAmt;
-			unsigned long long memDiff = 0;
-			char sgn;
-			if (freeRamAmt > initial_freeRamAmt)
-			{
-				memDiff = freeRamAmt - initial_freeRamAmt;
-				sgn = '+';
-			}
-			else // system memory can be freed by other processes
-			{
-				memDiff = initial_freeRamAmt - freeRamAmt;
-				sgn = '-';
-			}
-			std::cout << std::setw(15) << freeRamAmt << " b free (" << sgn << memDiff << ") ";
+				static unsigned long long initial_freeRamAmt = 0;
+				if (initial_freeRamAmt == 0)
+					initial_freeRamAmt = freeRamAmt;
+				unsigned long long memDiff = 0;
+				char sgn;
+				if (freeRamAmt > initial_freeRamAmt)
+				{
+					memDiff = freeRamAmt - initial_freeRamAmt;
+					sgn = '+';
+				}
+				else // system memory can be freed by other processes
+				{
+					memDiff = initial_freeRamAmt - freeRamAmt;
+					sgn = '-';
+				}
+				std::cout << std::setw(15) << freeRamAmt << " b free (" << sgn << memDiff << ") ";
 			)
 				// Display (1) dataset progress info and (2) file pair info
 				int digits = 2, k = std::pow(10.f, digits);
-			float perCent = float(filepair_index) * 100. * k / float(tot_num_filepairs) / float(k);
-			VERBOSLVL1(std::cout << "[ " << filepair_index << " = " << std::setw(digits + 2) << perCent << "% ]\t" << intens_fpath << "\n")
+				float perCent = float(filepair_index) * 100. * k / float(tot_num_filepairs) / float(k);
+				VERBOSLVL1(std::cout << "[ " << filepair_index << " = " << std::setw(digits + 2) << perCent << "% ]\t" << intens_fpath << "\n")
 				VERBOSLVL2(std::cout << "[ " << std::setw(digits + 2) << perCent << "% ]\t" << " INT: " << intens_fpath << " SEG: " << label_fpath << "\n")
 			}
 
 			{ STOPWATCH("Image scan2a/scan2a/s2a/#aabbcc", "\t=");
+				// Phase 1: gather ROI metrics
+				VERBOSLVL2(std::cout << "Gathering ROI metrics\n");
+				bool okGather = gatherRoisMetrics(intens_fpath, label_fpath, theImLoader);	// Output - set of ROI labels, label-ROI cache mappings
+				if (!okGather)
+				{
+					std::string msg = "Error gathering ROI metrics from " + intens_fpath + " / " + label_fpath + "\n";
+					std::cerr << msg;
+					throw (std::runtime_error(msg));
+					return false;
+				}
 
-			// Phase 1: gather ROI metrics
-			VERBOSLVL2(std::cout << "Gathering ROI metrics\n");
-			bool okGather = gatherRoisMetrics(intens_fpath, label_fpath, theImLoader);	// Output - set of ROI labels, label-ROI cache mappings
-			if (!okGather)
-			{
-				std::string msg = "Error gathering ROI metrics from " + intens_fpath + " / " + label_fpath + "\n";
-				std::cerr << msg;
-				throw (std::runtime_error(msg));
-				return false;
-			}
-
-			// Any ROIs in this slide? (Such slides may exist, it's normal.)
-			if (uniqueLabels.size() == 0)
-			{
-				return true;
-			}
+				// Any ROIs in this slide? (Such slides may exist, it's normal.)
+				if (uniqueLabels.size() == 0)
+				{
+					return true;
+				}
 			}
 
 			{ STOPWATCH("Image scan2b/scan2b/s2b/#aabbcc", "\t=");
+				// Allocate each ROI's feature value buffer
+				for (auto lab : uniqueLabels)
+				{
+					LR& r = roiData[lab];
+					r.initialize_fvals();
+				}
 
-			// Allocate each ROI's feature value buffer
-			for (auto lab : uniqueLabels)
-			{
-				LR& r = roiData[lab];
-				r.initialize_fvals();
-			}
-
-#ifndef WITH_PYTHON_H
-			// Dump ROI metrics to the output directory
-			VERBOSLVL2(dump_roi_metrics(label_fpath))
-#endif		
+				#ifndef WITH_PYTHON_H
+				// Dump ROI metrics to the output directory
+				VERBOSLVL2(dump_roi_metrics(label_fpath))
+				#endif		
 			}
 
 			{ STOPWATCH("Image scan3/scan3/s3/#aabbcc", "\t=");
+				// Support of ROI blacklist
+				fs::path fp(theSegFname);
+				std::string shortSegFname = fp.stem().string() + fp.extension().string();
 
-			// Support of ROI blacklist
-			fs::path fp(theSegFname);
-			std::string shortSegFname = fp.stem().string() + fp.extension().string();
-
-			// Distribute ROIs among phases
-			for (auto lab : uniqueLabels)
-			{
-				LR& r = roiData[lab];
-
-				// Skip blacklisted ROI
-				if (theEnvironment.roi_is_blacklisted(shortSegFname, lab))
+				// Distribute ROIs among phases
+				for (auto lab : uniqueLabels)
 				{
-					r.blacklisted = true;
-					VERBOSLVL2(std::cout << "Skipping blacklisted ROI " << lab << " for mask " << shortSegFname << "\n");
-					continue;
-				}
+					LR& r = roiData[lab];
 
-				// Examine ROI's memory footprint
-				if (size_t roiFootprint = r.get_ram_footprint_estimate(),
-					ramLim = theEnvironment.get_ram_limit();
-					roiFootprint >= ramLim)
-				{
-					VERBOSLVL2(
-						std::cout << "oversized ROI " << lab
-						<< " (S=" << r.aux_area
-						<< " W=" << r.aabb.get_width()
-						<< " H=" << r.aabb.get_height()
-						<< " px footprint=" << roiFootprint << " b"
-						<< ")\n"
-					);
-					nontrivRoiLabels.push_back(lab);
+					// Skip blacklisted ROI
+					if (theEnvironment.roi_is_blacklisted(shortSegFname, lab))
+					{
+						r.blacklisted = true;
+						VERBOSLVL2(std::cout << "Skipping blacklisted ROI " << lab << " for mask " << shortSegFname << "\n");
+						continue;
+					}
+
+					// Examine ROI's memory footprint
+					if (size_t roiFootprint = r.get_ram_footprint_estimate(),
+						ramLim = theEnvironment.get_ram_limit();
+						roiFootprint >= ramLim)
+					{
+						VERBOSLVL2(
+							std::cout << "oversized ROI " << lab
+							<< " (S=" << r.aux_area
+							<< " W=" << r.aabb.get_width()
+							<< " H=" << r.aabb.get_height()
+							<< " px footprint=" << roiFootprint << " b"
+							<< ")\n"
+						);
+						nontrivRoiLabels.push_back(lab);
+					}
+					else
+						trivRoiLabels.push_back(lab);
 				}
-				else
-					trivRoiLabels.push_back(lab);
-			}
 			}
 		}
 

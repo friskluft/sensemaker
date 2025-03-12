@@ -211,7 +211,6 @@ set(SOURCE
 	src/nyx/output_2_buffer.cpp
 	src/nyx/output_2_csv.cpp
 	src/nyx/output_writers.cpp
-	src/nyx/parallel.cpp
 	src/nyx/phase1.cpp
 	src/nyx/phase2.cpp
 	src/nyx/phase3.cpp

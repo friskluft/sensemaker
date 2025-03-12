@@ -133,10 +133,8 @@ namespace Nyxus
 	void reduce_trivial_wholeslide (LR & slideroi);
 	void reduce_neighbors_and_dependencies_manual ();
 
-	//????????????????????? void init_label_record(LR& lr, const std::string& segFile, const std::string& intFile, int x, int y, int label, PixIntens intensity);
 	void init_label_record_2(LR& lr, const std::string& segFile, const std::string& intFile, int x, int y, int label, PixIntens intensity, unsigned int tile_index);
 	void init_label_record_3D (LR& lr, const std::string& segFile, const std::string& intFile, int x, int y, int z, int label, PixIntens intensity, unsigned int tile_index);
-	//?????????????????????	void update_label_record(LR& lr, int x, int y, int label, PixIntens intensity);
 	void update_label_record_2(LR& lr, int x, int y, int label, PixIntens intensity, unsigned int tile_index);
 	void update_label_record_3D (LR& lr, int x, int y, int z, int label, PixIntens intensity, unsigned int tile_index);
 
@@ -149,9 +147,6 @@ namespace Nyxus
 	extern std::string theSegFname, theIntFname;	// Cached file names while iterating a dataset
 	extern std::unordered_set<int> uniqueLabels;
 	extern std::unordered_map <int, LR> roiData;
-	//????????????????	extern size_t zero_background_area;
-	//??????????????????? extern std::unordered_map <int, std::shared_ptr<std::mutex>> labelMutexes;
-
 
 	/// @brief Feeds a pixel to image measurement object to gauge the image RAM footprint without caching the pixel. Updates 'uniqueLabels' and 'roiData'.
 	/// @param x -- x-coordinate of the pixel in the image

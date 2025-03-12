@@ -226,7 +226,7 @@ bool StringPattern::tokenize (
 	std::vector<std::pair<std::string, std::string>> v
 	{
 		{ "[0-9]+" , t_NUM } ,
-		{ "[a-z|A-Z]+" , t_TEXT }, //??????????? "[a-z]+|[A-Z]+"
+		{ "[a-z|A-Z]+" , t_TEXT },
 		{ "~|`|!|@|#|\\$|%|\\^|&|\\(|\\)|_|-|\\+|=|\\{|\\}|\\[|]|'|;|,|\\.", t_SEP },
 		{ "\\*", t_STAR }
 	};

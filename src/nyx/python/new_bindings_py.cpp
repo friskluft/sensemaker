@@ -271,7 +271,7 @@ py::tuple featurize_directory_imp (
             theEnvironment.n_reduce_threads,
             min_online_roi_size,
             theEnvironment.saveOption,
-            output_path //????????????????? theEnvironment.output_dir
+            output_path
         );
     else
         errorCode = processDataset_2D_segmented (
@@ -284,16 +284,12 @@ py::tuple featurize_directory_imp (
             theEnvironment.saveOption,
             output_path);
 
-    VERBOSLVL2(std::cout << "@@@ featurize_directory_imp() #1\n");
-
     if (errorCode)
         throw std::runtime_error("Error " + std::to_string(errorCode) + " occurred during dataset processing");
 
     // Output the result
     if (theEnvironment.saveOption == Nyxus::SaveOption::saveBuffer)
     {
-        VERBOSLVL2(std::cout << "@@@ featurize_directory_imp() #1-A theEnv.saveOption=" << (int)theEnvironment.saveOption << "\n");
-
         auto pyHeader = py::array(py::cast(theResultsCache.get_headerBuf()));
         auto pyStrData = py::array(py::cast(theResultsCache.get_stringColBuf()));
         auto pyNumData = as_pyarray(std::move(theResultsCache.get_calcResultBuf()));
@@ -301,15 +297,11 @@ py::tuple featurize_directory_imp (
         // Shape the user-facing dataframe
         auto nRows = theResultsCache.get_num_rows();
 
-        VERBOSLVL2(std::cout << "@@@ featurize_directory_imp() #1-A nRows=" << nRows << "\n");
-
         pyStrData = pyStrData.reshape ({nRows, pyStrData.size() / nRows});
         pyNumData = pyNumData.reshape ({ nRows, pyNumData.size() / nRows });
 
         return py::make_tuple (pyHeader, pyStrData, pyNumData);
     } 
-
-    VERBOSLVL2(std::cout << "@@@ featurize_directory_imp() #2\n");
 
     return py::make_tuple();
 }
