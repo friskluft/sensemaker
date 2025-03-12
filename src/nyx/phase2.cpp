@@ -174,8 +174,11 @@ namespace Nyxus
 		return true;
 	}
 
+	//
+	// Reads pixels of whole slide 'intens_fpath' into virtual ROI 'vroi'
+	//
 	bool scan_trivial_wholeslide (
-		LR & fakeroi,
+		LR & vroi,
 		const std::string& intens_fpath,
 		ImageLoader& ldr)
 	{
@@ -224,7 +227,7 @@ namespace Nyxus
 						continue;
 
 					// Cache this pixel 
-					feed_pixel_2_cache_LR (x, y, dataI[i], fakeroi);
+					feed_pixel_2_cache_LR (x, y, dataI[i], vroi);
 				}
 
 				VERBOSLVL2(
@@ -633,65 +636,6 @@ namespace Nyxus
 
 		return true;
 	}
-
-	// Prerequisite: roiData contains ROI #1
-	bool process_wholeslide_as_roi (const std::string& intens_fpath, ImageLoader & imlo, size_t memory_limit, LR& fakeroi)
-	{
-		size_t fprint = fakeroi.get_ram_footprint_estimate();
-
-		// Check if we can process this slide
-		if (fprint > memory_limit)
-		{
-			std::cerr << "Error: cannot process slide " << intens_fpath << " , reason: its memory footprint " << virguler(fprint) << " exceeds available memory " << virguler(memory_limit) << "\n";
-			return false;
-		}
-
-		//???????????? std::vector<int> p = {1}; // roi #1
-		scan_trivial_wholeslide (fakeroi, intens_fpath, imlo); //???????? scanTrivialRois (p, intens_fpath, intens_fpath, 1/*num_FL_threads*/, imlo);
-
-		//***** condition upon user-selected features
-		//
-		//
-
-		// Allocate memory
-		VERBOSLVL2(std::cout << "\tallocating ROI buffers\n");
-		//?????????????? allocateTrivialRoisBuffers (p);
-		size_t len = fakeroi.aabb.get_width() * fakeroi.aabb.get_height();
-		fakeroi.aux_image_matrix.allocate (fakeroi.aabb.get_width(), fakeroi.aabb.get_height());
-
-		// Calculate the image matrix or cube 
-		fakeroi.aux_image_matrix.calculate_from_pixelcloud (fakeroi.raw_pixels, fakeroi.aabb);
-
-		//
-		//
-		//*****
-
-		// Reduce them
-		VERBOSLVL2(std::cout << "\treducing ROIs\n");
-		// reduce_trivial_rois(Pending);	
-		reduce_trivial_wholeslide (fakeroi);	//??????????????? reduce_trivial_rois_manual()
-
-		// Free memory
-		VERBOSLVL2(std::cout << "\tfreeing ROI buffers\n");
-		//?????????????? freeTrivialRoisBuffers (p);	// frees what's allocated by feed_pixel_2_cache() and allocateTrivialRoisBuffers()
-		std::vector<PixIntens>().swap (fakeroi.aux_image_matrix._pix_plane);
-
-		// Allow heyboard interrupt.
-		#ifdef WITH_PYTHON_H
-		if (PyErr_CheckSignals() != 0)
-		{
-			sureprint("\nAborting per user input\n");
-			throw pybind11::error_already_set();
-		}
-		#endif
-
-		VERBOSLVL2 (std::cout << "\t@@@ leaving process_wholeslide_as_roi()\n");
-
-		// no need to calculate neighbor features, returning
-		return true;
-	}
-
-
 
 	bool processTrivialRois_3D (const std::vector<int>& trivRoiLabels, const std::string& intens_fpath, const std::string& label_fpath, size_t memory_limit, const std::vector<std::string> & z_indices)
 	{

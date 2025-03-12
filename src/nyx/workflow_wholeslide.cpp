@@ -1,16 +1,13 @@
-#include "helpers/fsystem.h"
 #include <fstream>
+#include <future>
 #include <string>
 #include <iomanip>
-#include <vector>
+#include <limits>
 #include <map>
-#include <array>
 #include <regex>
 #include <string>
-#include <limits>
-
-#include <future>
 #include <thread>
+#include <vector>
 
 #ifdef WITH_PYTHON_H
 	#include <pybind11/pybind11.h>
@@ -26,415 +23,300 @@
 #include "features/gabor.h"
 #include "features/2d_geomoments.h"
 #include "globals.h"
+#include "helpers/fsystem.h"
 #include "helpers/helpers.h"
 #include "helpers/system_resource.h"
 #include "helpers/timing.h"
-
 #include "raw_image_loader.h"
 #include "save_option.h"
 
-#ifdef USE_GPU
-	#include "gpucache.h"
-#endif
-
-
-	namespace Nyxus
+namespace Nyxus
+{
+	bool featurize_triv_wholeslide (size_t sidx, ImageLoader & imlo, size_t memory_limit, LR & vroi)
 	{
-		bool scan_intlabel_pair_props (SlideProps& p);
-		bool processIntSegImagePair (const std::string& intens_fpath, const std::string& label_fpath, int num_FL_threads, int filepair_index, int tot_num_filepairs);
-		bool process_whole_slide (const std::string& intens_fpath, ImageLoader & imlo, LR & fakeroi);
+		const std::string & ifpath = LR::dataset_props[sidx].fname_int;
 
-		static std::mutex mutexApache1;
-
-		void handler1 (
-			const std::vector<std::string> & intensFiles, 
-			const std::vector<std::string> & labelFiles, 
-			size_t i, 
-			size_t nf, 
-			const std::string & outputPath, 
-			bool write_apache, 
-			Nyxus::SaveOption saveOption,
-			int & rv)
+		// can we process this slide ?
+		size_t footp = vroi.get_ram_footprint_estimate();
+		if (footp > memory_limit)
 		{
-			#ifdef CHECKTIMING
-			if (Stopwatch::exclusive())
-				Stopwatch::reset();
-			#endif
+			std::cerr << "Error: cannot process slide " << ifpath << " , reason: its memory footprint " << virguler(footp) << " exceeds available memory " << virguler(memory_limit) << "\n";
+			return false;
+		}
 
-			// Clear ROI data cached for the previous image
-			clear_slide_rois();
+		// read a pixel cloud
+		scan_trivial_wholeslide (vroi, ifpath, imlo); // counterpart of segmented scanTrivialRois ()
 
-			SlideProps& p = LR::dataset_props[i];
+		// allocate memory for feature helpers (image matrix, etc)
+		VERBOSLVL2(std::cout << "\tallocating vROI buffers\n");
+		size_t len = vroi.aabb.get_width() * vroi.aabb.get_height();
+		vroi.aux_image_matrix.allocate(vroi.aabb.get_width(), vroi.aabb.get_height());
 
-			// Scan one label-intensity pair 
-			ImageLoader imlo;
-			bool ok = imlo.open(p);	//??????????????????? theImLoader.open(p);
-			if (ok == false)
+		// calculate the image matrix or cube 
+		vroi.aux_image_matrix.calculate_from_pixelcloud (vroi.raw_pixels, vroi.aabb);
+
+		// calculate features 
+		VERBOSLVL2(std::cout << "\treducing whole slide\n");
+		reduce_trivial_wholeslide (vroi);	// counterpart of segmented reduce_trivial_rois_manual()
+
+		// free memory
+		VERBOSLVL2(std::cout << "\tfreeing vROI buffers\n");
+		std::vector<PixIntens>().swap(vroi.aux_image_matrix._pix_plane);
+
+		// allow heyboard interrupt
+		#ifdef WITH_PYTHON_H
+		if (PyErr_CheckSignals() != 0)
+		{
+			sureprint("\nAborting per user input\n");
+			throw pybind11::error_already_set();
+		}
+		#endif
+
+		// no need to calculate neighbor features in WSI, returning
+		return true;
+	}
+
+	bool featurize_wholeslide (size_t sidx, ImageLoader& imlo, LR& vroi)
+	{
+		// phase 1: gather ROI metrics
+		VERBOSLVL2(std::cout << "Gathering ROI metrics\n");
+
+		// phase 1: copy ROI metrics from the slide properties, thanks to the WSI scenario
+		// instead of gather_wholeslide_metrics (p.fname_int, imlo, vroi)	// segmented counterpart: gatherRoisMetrics()
+		vroi.slide_idx = (decltype(vroi.slide_idx)) sidx;
+		const SlideProps & p = LR::dataset_props [sidx];
+		vroi.aux_area = p.max_roi_area;
+		vroi.aabb.init_from_widthheight (p.max_roi_w, p.max_roi_h);
+		vroi.aux_min = (PixIntens) p.min_preroi_inten;
+		vroi.aux_max = (PixIntens) p.max_preroi_inten;
+
+		// prepare (zero) ROI's feature value buffer
+		vroi.initialize_fvals();
+
+		// assess ROI's memory footprint and check if we can featurize it as phase 2 (trivially) ?
+		if (size_t roiFootprint = vroi.get_ram_footprint_estimate(),
+			ramLim = theEnvironment.get_ram_limit();
+			roiFootprint >= ramLim)
+		{
+			VERBOSLVL2(
+				std::cout << "oversized slide "
+				<< " (S=" << vroi.aux_area
+				<< " W=" << vroi.aabb.get_width()
+				<< " H=" << vroi.aabb.get_height()
+				<< " px footprint=" << roiFootprint << " b"
+				<< ")\n"
+			);
+
+			std::cout << p.fname_int << ": slide is non-trivial \n";
+			return false;
+		}
+
+		// phase 2: extract features
+		featurize_triv_wholeslide (sidx, imlo, theEnvironment.get_ram_limit(), vroi); // segmented counterpart: phase2.cpp / processTrivialRois ()
+
+		return true;
+	}
+
+	void featurize_wsi_thread (
+		const std::vector<std::string> & intensFiles, 
+		const std::vector<std::string> & labelFiles, 
+		size_t slide_idx, 
+		size_t nf, 
+		const std::string & outputPath, 
+		bool write_apache, 
+		Nyxus::SaveOption saveOption,
+		int & rv)
+	{
+		// clear ROI data cached for the previous image
+		clear_slide_rois();
+
+		SlideProps & p = LR::dataset_props [slide_idx];
+
+		// scan one slide
+		ImageLoader imlo;
+		if (imlo.open(p) == false)
+		{
+			std::cerr << "Terminating\n";
+			rv = 1;
+		}
+
+		LR vroi; // virtual ROI representing the whole slide
+		if (featurize_wholeslide (slide_idx, imlo, vroi) == false)	// non-wsi counterpart: processIntSegImagePair()
+		{
+			std::cout << "processIntSegImagePair() returned an error code while processing slide " << p.fname_int << "\n";
+			rv = 1;
+		}
+
+		if (write_apache) 
+		{
+			auto [status, msg] = save_features_2_apache_wholeslide (vroi, p.fname_int);
+			if (! status) 
 			{
-				std::cerr << "Terminating\n";
-				rv = 1;
+				std::cout << "Error writing Arrow file: " << msg.value() << std::endl;
+				rv = 2;
 			}
-
-			// Do phased processing: prescan, trivial ROI processing, oversized ROI processing
-			LR fakeroi;
-			ok = process_whole_slide (p.fname_int, imlo, fakeroi); //?????????????? needs to be replaced with something specialized wholeslide ?????????    ok = processIntSegImagePair (ifp, lfp, 1/* ???????????? numFastloaderThreads*/, i, nf);
-
-			VERBOSLVL2(std::cout << "@@@handler1() saving features\n");
-
-			if (ok == false)
+		}
+		else 
+			if (saveOption == SaveOption::saveCSV)
 			{
-				std::cout << "processIntSegImagePair() returned an error code while processing slide " << p.fname_int << "\n";
-				rv = 1;
-			}
-
-			if (write_apache) 
-			{
-				VERBOSLVL2(std::cout << "@@@handler1() saveOption == write_apache\n");
-
-				std::lock_guard<std::mutex> lg(mutexApache1);
-
-				auto [status, msg] = theEnvironment.arrow_stream.write_arrow_file (
-					Nyxus::get_feature_values_roi (fakeroi, p.fname_int, ""));
-
-				if (!status) 
+				if (save_features_2_csv_wholeslide(vroi, p.fname_int, "", outputPath) == false)
 				{
-					std::cout << "Error writing Arrow file: " << msg.value() << std::endl;
+					std::cout << "save_features_2_csv() returned an error code" << std::endl;
 					rv = 2;
 				}
 			}
-			else 
-				if (saveOption == SaveOption::saveCSV)
-				{
-					VERBOSLVL2(std::cout << "@@@handler1() saveOption == SaveOption::saveCSV\n");
-
-					ok = save_features_2_csv_roi (fakeroi, p.fname_int, "", outputPath); // true; //??????????? !!!! save_features_2_csv(p.fname_int, p.fname_int, outputPath);
-
-					if (ok == false)
-					{
-						std::cout << "save_features_2_csv() returned an error code" << std::endl;
-						rv = 2;
-					}
-				}
-				else
-				{
-					VERBOSLVL2(std::cout << "@@@handler1() saveOption == buffer\n");
-
-					ok = save_features_2_buffer_roi (theResultsCache, fakeroi, p.fname_int, "");
-
-					if (ok == false)
-					{
-						std::cout << "save_features_2_buffer() returned an error code" << std::endl;
-						rv = 2;
-					}
-				}
-
-			VERBOSLVL2(std::cout << "@@@handler1() done saving features\n");
-
-			theImLoader.close();
-
-			// Save nested ROI related info of this image
-			if (theEnvironment.nestedOptions.defined())
-				save_nested_roi_info(nestedRoiData, uniqueLabels, roiData);
-
-#ifdef WITH_PYTHON_H
-			// Allow heyboard interrupt.
-			if (PyErr_CheckSignals() != 0)
+			else
 			{
-				sureprint("\nAborting per user input\n");
-				throw pybind11::error_already_set();
+				// pulls feature values from 'vroi' and appends them to global object 'theResultsCache' exposed to Python API
+				if (save_features_2_buffer_wholeslide(Nyxus::theResultsCache, vroi, p.fname_int, "") == false)
+				{
+					std::cout << "save_features_2_buffer() returned an error code" << std::endl;
+					rv = 2;
+				}
 			}
-#endif
 
-			#ifdef CHECKTIMING
-			if (Stopwatch::exclusive())
+		imlo.close();
+
+		//
+		// Not saving nested ROI related info because this image is single-ROI (whole-slide)
+		//
+
+		// allow heyboard interrupt
+		#ifdef WITH_PYTHON_H
+		if (PyErr_CheckSignals() != 0)
+		{
+			sureprint("\nAborting per user input\n");
+			throw pybind11::error_already_set();
+		}
+		#endif
+
+		rv = 0; // success
+	}
+
+	int processDataset_2D_wholeslide (
+		const std::vector<std::string>& intensFiles,
+		const std::vector<std::string>& labelFiles,
+		int n_threads,
+		int min_online_roi_size,
+		const SaveOption saveOption,
+		const std::string& outputPath)
+	{
+
+		//**** prescan all slides
+
+		size_t nf = intensFiles.size();
+
+		VERBOSLVL1(std::cout << "phase 0 (prescanning)\n");
+
+		LR::reset_dataset_props();
+		LR::dataset_props.resize(nf);
+		for (size_t i=0; i<nf; i++)
+		{
+			// slide file names
+			SlideProps& p = LR::dataset_props[i];
+			p.fname_int = intensFiles[i];
+			p.fname_seg = labelFiles[i];
+
+			// slide metrics
+			VERBOSLVL1(std::cout << "prescanning " << p.fname_int);
+			if (! scan_slide_props(p))
 			{
-				// Detailed timing - on the screen
-				VERBOSLVL1(Stopwatch::print_stats());
-
-				// Details - also to a file
-				//xxx		VERBOSLVL1(
-				//xxx			fs::path p(theSegFname);
-				//xxx			Stopwatch::save_stats(theEnvironment.output_dir + "/" + p.stem().string() + "_nyxustiming.csv")
-				//xxx				);
+				VERBOSLVL1(std::cout << "error prescanning pair " << p.fname_int << " and " << p.fname_seg << std::endl);
+				return 1;
 			}
-			#endif
-
-			rv = 0; // success
-
-			VERBOSLVL2(std::cout << "@@@leaving handler1()\n");
-
+			VERBOSLVL1(std::cout << "\tmax ROI " << p.max_roi_w << " x " << p.max_roi_h << "\tmin-max I " << p.min_preroi_inten << "-" << p.max_preroi_inten << "\n");
 		}
 
-		typedef void (*functype1) (
-			size_t start, size_t end, 
-			//std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData
-			const std::vector<std::string>& intensFiles,
-			const std::vector<std::string>& labelFiles,
-			int n_threads,
-			int min_online_roi_size,
-			const SaveOption saveOption,
-			const std::string& outputPath);
+		// global properties
+		LR::dataset_max_combined_roicloud_len = 0;
+		LR::dataset_max_n_rois = 0;
+		LR::dataset_max_roi_area = 0;
+		LR::dataset_max_roi_w = 0;
+		LR::dataset_max_roi_h = 0;
 
-		inline void runParallel1 (functype1 f, int nThr, size_t workPerThread, size_t datasetSize, 
-			//std::vector<int>* ptrLabels, std::unordered_map <int, LR>* ptrLabelData
-			const std::vector<std::string>& intensFiles,
-			const std::vector<std::string>& labelFiles,
-			int n_threads,
-			int min_online_roi_size,
-			const SaveOption saveOption,
-			const std::string& outputPath
-		)
+		for (SlideProps& p : LR::dataset_props)
 		{
-			std::vector<std::future<void>> T;
-			for (int t = 0; t < nThr; t++)
+			size_t sup_s_n = p.n_rois * p.max_roi_area;
+			LR::dataset_max_combined_roicloud_len = (std::max)(LR::dataset_max_combined_roicloud_len, sup_s_n);
+			LR::dataset_max_n_rois = (std::max)(LR::dataset_max_n_rois, p.n_rois);
+			LR::dataset_max_roi_area = (std::max)(LR::dataset_max_roi_area, p.max_roi_area);
+			LR::dataset_max_roi_w = (std::max)(LR::dataset_max_roi_w, p.max_roi_w);
+			LR::dataset_max_roi_h = (std::max)(LR::dataset_max_roi_h, p.max_roi_h);
+		}
+
+		VERBOSLVL1(std::cout << "\t finished prescanning \n");
+
+		//
+		// future: allocate GPU cache for all participating devices
+		//
+
+		//**** extract features
+
+		bool write_apache = (saveOption == SaveOption::saveArrowIPC || saveOption == SaveOption::saveParquet);
+
+		// initialize Apache output
+		if (write_apache) 
+		{
+			theEnvironment.arrow_stream = ArrowOutputStream();
+			std::string afn = get_arrow_filename (outputPath, theEnvironment.nyxus_result_fname, saveOption);
+			VERBOSLVL2 (std::cout << "arrow file name =" << afn << "\n");
+			auto [status, msg] = theEnvironment.arrow_stream.create_arrow_file (saveOption, afn, Nyxus::get_header(theFeatureSet.getEnabledFeatures()));
+
+			if (!status) 
 			{
-				size_t idxS = t * workPerThread,
-					idxE = idxS + workPerThread;
-				if (t == nThr - 1)
-					idxE = datasetSize; // include the tail
-				T.push_back(std::async(std::launch::async, f, idxS, idxE, 
-					//ptrLabels, ptrLabelData
+				std::cout << "Error creating Arrow file: " << msg.value() << std::endl;
+				return 1;
+			}
+		}
+
+		// run batches of threads
+		size_t n_jobs = (nf + n_threads - 1) / n_threads;
+		for (size_t j=0; j<n_jobs; j++)
+		{
+			std::cout << "job " << j+1 << "/" << n_jobs << "\n";
+
+			std::vector<std::future<void>> T;
+			for (int t=0; t < n_threads; t++)
+			{
+				size_t idx = j * n_threads + t;
+
+				// done?
+				if (idx + 1 > nf)
+					break;
+
+				int rval = 0;
+				T.push_back (std::async(std::launch::async, 
+					featurize_wsi_thread,
 					intensFiles,
 					labelFiles,
-					n_threads,
-					min_online_roi_size,
+					idx,
+					nf,
+					outputPath,
+					write_apache,
 					saveOption,
-					outputPath
-					));
+					std::ref(rval)));
 			}
 		}
 
-		int processDataset_wholeslide(
-			const std::vector<std::string>& intensFiles,
-			const std::vector<std::string>& labelFiles,
-			int n_threads,
-			int min_online_roi_size,
-			const SaveOption saveOption,
-			const std::string& outputPath)
+		//**** finalize Apache output
+
+		if (write_apache) 
 		{
-
-#ifdef CHECKTIMING
-			if (Stopwatch::inclusive())
-				Stopwatch::reset();
-#endif		
-
-			//********************** prescan ***********************
-
-			// slide properties
-			size_t nf = intensFiles.size();
-
-			{ STOPWATCH("prescan/p0/P/#ccbbaa", "\t=");
-
-			VERBOSLVL1(std::cout << "phase 0 (prescanning)\n");
-
-			LR::reset_dataset_props();
-			LR::dataset_props.resize(nf);
-			for (size_t i = 0; i < nf; i++)
+			// close arrow file after use
+			auto [status, msg] = theEnvironment.arrow_stream.close_arrow_file();
+			if (!status) 
 			{
-				// slide file names
-				SlideProps& p = LR::dataset_props[i];
-				p.fname_int = intensFiles[i];
-				p.fname_seg = labelFiles[i];
-
-				// slide metrics
-				VERBOSLVL1(std::cout << "prescanning " << p.fname_int);
-				if (!scan_intlabel_pair_props(p))
-				{
-					VERBOSLVL1(std::cout << "error prescanning pair " << p.fname_int << " and " << p.fname_seg << std::endl);
-					return 1;
-				}
-				VERBOSLVL1(std::cout << "\tmax ROI " << p.max_roi_w << " x " << p.max_roi_h << "\tmin-max I " << p.min_preroi_inten << "-" << p.max_preroi_inten << "\n");
+				std::cout << "Error closing Arrow file: " << msg.value() << std::endl;
+				return 2;
 			}
-
-			// global properties
-			LR::dataset_max_combined_roicloud_len = 0;
-			LR::dataset_max_n_rois = 0;
-			LR::dataset_max_roi_area = 0;
-			LR::dataset_max_roi_w = 0;
-			LR::dataset_max_roi_h = 0;
-
-			for (SlideProps& p : LR::dataset_props)
-			{
-				size_t sup_s_n = p.n_rois * p.max_roi_area;
-				LR::dataset_max_combined_roicloud_len = (std::max)(LR::dataset_max_combined_roicloud_len, sup_s_n);
-				LR::dataset_max_n_rois = (std::max)(LR::dataset_max_n_rois, p.n_rois);
-				LR::dataset_max_roi_area = (std::max)(LR::dataset_max_roi_area, p.max_roi_area);
-				LR::dataset_max_roi_w = (std::max)(LR::dataset_max_roi_w, p.max_roi_w);
-				LR::dataset_max_roi_h = (std::max)(LR::dataset_max_roi_h, p.max_roi_h);
-			}
-
-			VERBOSLVL1(std::cout << "\t finished prescanning \n");
-
-			//********************** allocate the GPU cache ***********************
-
-#ifdef USE_GPU
-			if (theEnvironment.using_gpu())
-			{
-				// what parts of GPU cache we need to bother about ?
-				bool needContour = ContourFeature::required(theFeatureSet),
-					needErosion = ErosionPixelsFeature::required(theFeatureSet),
-					needGabor = GaborFeature::required(theFeatureSet),
-					needImoments = Imoms2D_feature::required(theFeatureSet),
-					needSmoments = Smoms2D_feature::required(theFeatureSet),
-					needMoments = needImoments || needSmoments;
-
-				// whole slide's contour is just 4 vertices long
-				size_t kontrLen = Nyxus::theEnvironment.singleROI ? 4 : LR::dataset_max_combined_roicloud_len;
-
-				if (theEnvironment.using_gpu())
-				{
-					// allocate
-					VERBOSLVL1(std::cout << "allocating GPU cache \n");
-
-					if (!NyxusGpu::allocate_gpu_cache(
-						// out
-						NyxusGpu::gpu_roiclouds_2d,
-						NyxusGpu::gpu_roicontours_2d,
-						&NyxusGpu::dev_realintens,
-						&NyxusGpu::dev_prereduce,
-						NyxusGpu::gpu_featurestatebuf,
-						NyxusGpu::devicereduce_temp_storage_szb,
-						&NyxusGpu::dev_devicereduce_temp_storage,
-						NyxusGpu::gpu_batch_len,
-						&NyxusGpu::dev_imat1,
-						&NyxusGpu::dev_imat2,
-						NyxusGpu::gabor_linear_image,
-						NyxusGpu::gabor_linear_kernel,
-						NyxusGpu::gabor_result,
-						NyxusGpu::gabor_energy_image,
-						// in
-						needContour,
-						needErosion,
-						needGabor,
-						needMoments,
-						LR::dataset_max_combined_roicloud_len, // desired totCloLen,
-						kontrLen, // desired totKontLen,
-						LR::dataset_max_n_rois,	// labels.size()
-						LR::dataset_max_roi_area,
-						LR::dataset_max_roi_w,
-						LR::dataset_max_roi_h,
-						GaborFeature::f0_theta_pairs.size(),
-						GaborFeature::n
-					))	// we need max ROI area inside the function to calculate the batch size if 'dataset_max_combined_roicloud_len' doesn't fit in RAM
-					{
-						std::cerr << "error in " << __FILE__ << ":" << __LINE__ << "\n";
-						return 1;
-					}
-
-					VERBOSLVL1(std::cout << "\t ---done allocating GPU cache \n");
-				}
-			} // opted to use GPU
-#endif
-			} // prescan timing
-
-			//????????????????	// One-time initialization
-			//????????????????	init_slide_rois();
-
-			bool write_apache = (saveOption == SaveOption::saveArrowIPC || saveOption == SaveOption::saveParquet);
-
-			// initialize arrow writer if needed
-			if (write_apache) 
-			{
-
-				theEnvironment.arrow_stream = ArrowOutputStream();
-				std::string afn = get_arrow_filename (outputPath, theEnvironment.nyxus_result_fname, saveOption);
-				VERBOSLVL2 (std::cout << "@@@ Arrow file name =" << afn << "\n");
-				auto [status, msg] = theEnvironment.arrow_stream.create_arrow_file(
-					saveOption,
-					afn,
-					Nyxus::get_header(theFeatureSet.getEnabledFeatures()));
-
-				if (!status) {
-					std::cout << "Error creating Arrow file: " << msg.value() << std::endl;
-					return 1;
-				}
-			}
-
-			bool ok = true;
-
-//???????????? v2
-			size_t n_jobs = (nf + n_threads - 1) / n_threads;
-			for (size_t j=0; j<n_jobs; j++)
-			{
-				std::cout << "job " << j+1 << "/" << n_jobs << "\n";
-
-				std::vector<std::future<void>> T;
-				for (int t=0; t < n_threads; t++)
-				{
-					size_t idx = j * n_threads + t;
-
-					// done?
-					if (idx + 1 > nf)
-						break;
-
-					int rval = 0;
-					T.push_back (std::async(std::launch::async, 
-						handler1, 
-						intensFiles,
-						labelFiles,
-						idx,
-						nf,
-						outputPath,
-						write_apache,
-						saveOption,
-						std::ref(rval)));
-				}
-
-			}
-
-			VERBOSLVL2(std::cout << "@@@ after running jobs 1\n");
-
-#ifdef CHECKTIMING
-			if (Stopwatch::inclusive())
-			{
-				// Detailed timing - on the screen
-				VERBOSLVL1(Stopwatch::print_stats());
-
-				// Details - also to a file
-				VERBOSLVL1(
-					fs::path p(theSegFname);
-				Stopwatch::save_stats(theEnvironment.output_dir + "/inclusive_nyxustiming.csv");
-				);
-			}
-#endif
-
-			if (write_apache) 
-			{
-				// close arrow file after use
-				auto [status, msg] = theEnvironment.arrow_stream.close_arrow_file();
-				if (!status) {
-					std::cout << "Error closing Arrow file: " << msg.value() << std::endl;
-					return 2;
-				}
-			}
-
-#ifdef USE_GPU
-			if (theEnvironment.using_gpu())
-			{
-				if (!NyxusGpu::free_gpu_cache(
-					NyxusGpu::gpu_roiclouds_2d,
-					NyxusGpu::gpu_roicontours_2d,
-					NyxusGpu::dev_realintens,
-					NyxusGpu::dev_prereduce,
-					NyxusGpu::gpu_featurestatebuf,
-					NyxusGpu::dev_devicereduce_temp_storage,
-					NyxusGpu::dev_imat1,
-					NyxusGpu::dev_imat2,
-					NyxusGpu::gabor_linear_image,
-					NyxusGpu::gabor_result,
-					NyxusGpu::gabor_linear_kernel,
-					NyxusGpu::gabor_energy_image))
-				{
-					std::cerr << "error in free_gpu_cache()\n";
-					return 1;
-				}
-			}
-#endif
-
-			VERBOSLVL2(std::cout << "@@@ after running jobs 2\n");
-
-			return 0; // success
 		}
 
+		//
+		// future: free GPU cache for all participating devices
+		//
+
+		return 0; // success
 	}
+
+}
 

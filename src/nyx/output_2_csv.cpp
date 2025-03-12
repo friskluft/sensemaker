@@ -187,7 +187,7 @@ namespace Nyxus
 
 	static std::mutex mutex1;
 
-	bool save_features_2_csv_roi (
+	bool save_features_2_csv_wholeslide (
 		const LR & r, 
 		const std::string & ifpath, 
 		const std::string & mfpath, 

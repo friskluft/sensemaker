@@ -233,8 +233,6 @@ namespace Nyxus
 		}
 		else { throw (std::runtime_error("Tile Loader ERROR: The file can not be opened.")); }
 	}
-
-
 	
 	bool readDirectoryFiles_3D (const std::string & dir, const StringPattern & filePatt, std::vector <Imgfile3D_layoutA> & files)
 	{

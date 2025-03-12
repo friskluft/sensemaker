@@ -22,7 +22,7 @@ using namespace Nyxus;
 
 namespace Nyxus {
 
-    int processDataset(
+    int processDataset_2D_segmented (
         const std::vector<std::string>& intensFiles,
         const std::vector<std::string>& labelFiles,
         int numFastloaderThreads,
@@ -32,7 +32,7 @@ namespace Nyxus {
         const SaveOption saveOption,
         const std::string& outputPath);
     
-    int processDataset_wholeslide(
+    int processDataset_2D_wholeslide (
         const std::vector<std::string>& intensFiles,
         const std::vector<std::string>& labelFiles,
         int n_threads,
@@ -40,7 +40,7 @@ namespace Nyxus {
         const SaveOption saveOption,
         const std::string& outputPath);
 
-    int processDataset_3D(
+    int processDataset_3D_segmented (
         const std::vector <Imgfile3D_layoutA>& intensFiles,
         const std::vector <Imgfile3D_layoutA>& labelFiles,
         int numFastloaderThreads,
@@ -265,7 +265,7 @@ py::tuple featurize_directory_imp (
 	}();
 
     if (theEnvironment.singleROI)
-        errorCode = processDataset_wholeslide(
+        errorCode = processDataset_2D_wholeslide (
             intensFiles,
             labelFiles,
             theEnvironment.n_reduce_threads,
@@ -274,7 +274,7 @@ py::tuple featurize_directory_imp (
             output_path //????????????????? theEnvironment.output_dir
         );
     else
-        errorCode = processDataset(
+        errorCode = processDataset_2D_segmented (
             intensFiles,
             labelFiles,
             theEnvironment.n_loader_threads,
@@ -366,7 +366,7 @@ py::tuple featurize_directory_imq_imp (
         } else {return SaveOption::saveBuffer;}
 	}();
 
-    errorCode = processDataset(
+    errorCode = processDataset_2D_segmented (
         intensFiles,
         labelFiles,
         theEnvironment.n_loader_threads,
@@ -456,7 +456,7 @@ py::tuple featurize_directory_3D_imp(
         else { return SaveOption::saveBuffer; }
     }();
 
-    errorCode = processDataset_3D(
+    errorCode = processDataset_3D_segmented (
         intensFiles,
         labelFiles,
         theEnvironment.n_loader_threads,
@@ -624,7 +624,7 @@ py::tuple featurize_fname_lists_imp (const py::list& int_fnames, const py::list 
 		} else {return SaveOption::saveBuffer;}
 	}();
 
-    errorCode = processDataset(
+    errorCode = processDataset_2D_segmented (
         intensFiles,
         labelFiles,
         theEnvironment.n_loader_threads,

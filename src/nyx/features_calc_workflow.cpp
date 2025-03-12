@@ -61,6 +61,7 @@ namespace Nyxus
 		//?????????????????? labelMutexes.clear();
 	}
 
+/* ?????????????????
 	// Label Record (structure 'LR') is where the state of label's pixels scanning and feature calculations is maintained. This function initializes an LR instance for the 1st pixel.
 	void init_label_record(LR& r, const std::string& segFile, const std::string& intFile, int x, int y, int label, PixIntens intensity)
 	{
@@ -122,6 +123,7 @@ namespace Nyxus
 		r.fvals[(int)Feature2D::ROBUST_MEAN_ABSOLUTE_DEVIATION][0] = 0;
 		r.fvals[(int)Feature2D::COV][0] = 0;
 	}
+*/
 
 	void init_label_record_2 (LR& r, const std::string& segFile, const std::string& intFile, int x, int y, int label, PixIntens intensity, unsigned int tile_index)
 	{
@@ -153,6 +155,7 @@ namespace Nyxus
 		r.intFname = intFile;
 	}
 
+/* ????????????????
 	// This function 'digests' the 2nd and the following pixel of a label and updates the label's feature calculation state - the instance of structure 'LR'
 	void update_label_record (LR& lr, int x, int y, int label, PixIntens intensity)
 	{
@@ -173,6 +176,7 @@ namespace Nyxus
 		LR::slide_min_inten = std::min (LR::slide_min_inten, intensity);
 		LR::slide_max_inten = std::max (LR::slide_max_inten, intensity);
 	}
+*/
 
 	void update_label_record_2 (LR& lr, int x, int y, int label, PixIntens intensity, unsigned int tile_index)
 	{
@@ -184,9 +188,11 @@ namespace Nyxus
 
 		lr.update_aabb (x,y);
 
+		/* ???????????????????
 		// Per-slide UINT32 intensity range (conversion is done in theImLoader.load_tile(row, col) / LoadImage)
 		LR::slide_min_inten = std::min (LR::slide_min_inten, intensity);
 		LR::slide_max_inten = std::max (LR::slide_max_inten, intensity);
+		*/
 	}
 
 	void update_label_record_3D (LR& lr, int x, int y, int z, int label, PixIntens intensity, unsigned int tile_index)
@@ -199,8 +205,10 @@ namespace Nyxus
 
 		lr.update_aabb_3D (x, y, z);
 
+		/* ???????????????????
 		// Per-image
 		LR::slide_min_inten = std::min (LR::slide_min_inten, intensity);
 		LR::slide_max_inten = std::max (LR::slide_max_inten, intensity);
+		*/
 	}
 }

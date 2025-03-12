@@ -531,88 +531,11 @@ namespace Nyxus
 			NGTDMFeature::extract (r);
 		}
 
-#ifdef USE_GPU // Assuming GPU is available
-
-		//==== Share ROI data (clouds, contours) with GPU-enabled features
-
-		bool doImoms = Imoms2D_feature::required(theFeatureSet),
-			doSmoms = Smoms2D_feature::required(theFeatureSet),
-			doEros = ErosionPixelsFeature::required(theFeatureSet),
-			doGabor = GaborFeature::required(theFeatureSet);
-		if (doEros || doImoms || doSmoms || doGabor)
-		{
-			if (theEnvironment.using_gpu())
-			{
-				// Cache ROI clouds and contours
-				int nrois = L.size(),
-					nb = std::ceil((float)nrois / (float)NyxusGpu::gpu_batch_len);
-				for (int b = 0; b < nb; b++)
-				{
-					size_t off_this_batch = b * NyxusGpu::gpu_batch_len;
-					size_t actual_batch_len = off_this_batch + NyxusGpu::gpu_batch_len > nrois ? nrois % NyxusGpu::gpu_batch_len : NyxusGpu::gpu_batch_len;
-
-					{
-						// upload a batch of ROIs
-						STOPWATCH("Upload2Gpu/Upload/U/#ababab", "\t=");
-						NyxusGpu::send_roi_data_gpuside(L, roiData, off_this_batch, actual_batch_len);
-					}
-
-					// Calculate GPU-enabled features via GPU
-
-					if (doEros)
-					{
-						STOPWATCH("GPU-Morphology/GPU-Erosion/Er/#4aaaea", "\t=");
-						ErosionPixelsFeature::gpu_process_all_rois(L, roiData, off_this_batch, actual_batch_len);
-					}
-
-					if (doImoms)
-					{
-						STOPWATCH("GPU-I-moments/GPU-I-moments/GM/#FFFACD", "\t=");
-						Imoms2D_feature::gpu_process_all_rois(L, roiData, off_this_batch, actual_batch_len);
-					}
-
-					if (doSmoms)
-					{
-						STOPWATCH("GPU-S-moments/GPU-S-moments/GM/#FFFACD", "\t=");
-						Smoms2D_feature::gpu_process_all_rois(L, roiData, off_this_batch, actual_batch_len);
-					}
-
-					if (doGabor)
-					{
-						STOPWATCH("GPU-Gabor/GPU-Gabor/Gabor/#f58231", "\t=");
-						GaborFeature::gpu_process_all_rois(L, roiData, off_this_batch, actual_batch_len);
-					}
-
-				} // ROI batches
-			}
-			else
-			{
-				// user refused the GPU opportunity, so route calculation via the regular CPU-multithreaded way
-
-				if (doEros)
-				{
-					STOPWATCH("Morphology/Erosion/Er/#4aaaea", "\t=");
-					ErosionPixelsFeature::parallel_process_1_batch (0, 1, &L, &roiData); //????????? runParallel(ErosionPixelsFeature::parallel_process_1_batch, n_threads, work_per_thread, job_size, &L, &roiData);
-				}
-				if (doImoms)
-				{
-					STOPWATCH("I-moments/I-moments/GM/#FFFACE", "\t=");
-					Imoms2D_feature::parallel_process_1_batch (0, 1, &L, &roiData); //????????? runParallel(Imoms2D_feature::parallel_process_1_batch, n_threads, work_per_thread, job_size, &L, &roiData);
-				}
-				if (doSmoms)
-				{
-					STOPWATCH("S-moments/S-moments/GM/#FFFACE", "\t=");
-					Smoms2D_feature::parallel_process_1_batch (0, 1, &L, &roiData); //????????? runParallel(Smoms2D_feature::parallel_process_1_batch, n_threads, work_per_thread, job_size, &L, &roiData);
-				}
-				if (doGabor)
-				{
-					STOPWATCH("Gabor/Gabor/Gabor/#f58231", "\t=");
-					GaborFeature::reduce (0, 1, &L, &roiData); //????????? runParallel(GaborFeature::reduce, n_threads, work_per_thread, job_size, &L, &roiData);
-				}
-			}
-		}
-#else	
-		// GPU unavailable
+		//
+		// future: run expensive features on available GPU devices
+		//
+		// future: otherwise, run expensive features CPU-side
+		//
 
 		if (ErosionPixelsFeature::required(theFeatureSet))
 		{
@@ -637,7 +560,10 @@ namespace Nyxus
 			STOPWATCH("Gabor/Gabor/Gabor/#f58231", "\t=");
 			GaborFeature::extract (r);
 		}
-#endif
+
+		//
+		// future: end run expensive features on available GPU devices
+		//
 
 		//==== Radial distribution / Zernike 2D 
 		if (ZernikeFeature::required(theFeatureSet))

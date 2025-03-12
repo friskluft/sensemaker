@@ -2,18 +2,10 @@
 #include <unordered_map>
 #include <unordered_set> 
 #include <algorithm>
-#if __has_include(<filesystem>)
-#include <filesystem>
-namespace fs = std::filesystem;
-#elif __has_include(<experimental/filesystem>)
-#include <experimental/filesystem> 
-namespace fs = std::experimental::filesystem;
-#else
-error "Missing the <filesystem> header."
-#endif
 #include <iostream>
 #include <sstream>
 #include <iomanip>
+#include <mutex>
 #include <set>
 #include <stdlib.h>
 #include <stdio.h>
@@ -24,12 +16,13 @@ error "Missing the <filesystem> header."
 #include "features/glcm.h"
 #include "features/glrlm.h"
 #include "features/zernike.h"
+#include "helpers/fsystem.h"
 
 namespace Nyxus
 {
-	static std::mutex mutex1;
+	static std::mutex mx1;
 
-	bool save_features_2_buffer_roi (
+	bool save_features_2_buffer_wholeslide (
 		// out
 		ResultsCache & rescache, 
 		// in
@@ -37,7 +30,7 @@ namespace Nyxus
 		const std::string& ifpath,
 		const std::string& mfpath)
 	{
-		std::lock_guard<std::mutex> lg (mutex1);
+		std::lock_guard<std::mutex> lg (mx1);
 
 		std::vector<std::tuple<std::string, int>> F = theFeatureSet.getEnabledFeatures();
 

@@ -74,10 +74,12 @@ public:
 	// 3D
 	SimpleCube<PixIntens> aux_image_cube;
 
-	// Stats across ROI pixels of the slide
-	static PixIntens slide_min_inten;
-	static PixIntens slide_max_inten;
-	static void reset_global_stats();
+	//???????????? // Stats across ROI pixels of the slide
+		//??? static PixIntens slide_min_inten;
+		//??? static PixIntens slide_max_inten;
+		//??? static void reset_global_stats();
+	int slide_idx; // index in LR::dataset_props
+
 	// Dataset properties
 	static std::vector<SlideProps> dataset_props;
 	static size_t dataset_max_combined_roicloud_len;

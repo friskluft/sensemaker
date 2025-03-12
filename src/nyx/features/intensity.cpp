@@ -97,7 +97,14 @@ void PixelIntensityFeatures::calculate(LR& r)
 	val_RANGE = val_MAX - val_MIN;
 
 	// --COVERED_IMAGE_INTENSITY_RANGE
-	val_COVERED_IMAGE_INTENSITY_RANGE = double(r.aux_max - r.aux_min) / double(LR::slide_max_inten - LR::slide_min_inten);
+	if (r.slide_idx >= 0)
+	{
+		const SlideProps& p = LR::dataset_props[r.slide_idx];
+		double sir = (p.max_preroi_inten - p.min_preroi_inten); // slide intensity range
+		val_COVERED_IMAGE_INTENSITY_RANGE = double(r.aux_max - r.aux_min) / sir; //????????????? / double(LR::slide_max_inten - LR::slide_min_inten);
+	}
+	else
+		val_COVERED_IMAGE_INTENSITY_RANGE = 1;
 
 	double n = r.aux_area;
 
@@ -212,7 +219,14 @@ void PixelIntensityFeatures::osized_calculate(LR& r, ImageLoader& imloader)
 	val_RANGE = val_MAX - val_MIN;
 
 	// --COVERED_IMAGE_INTENSITY_RANGE
-	val_COVERED_IMAGE_INTENSITY_RANGE = (r.aux_max - r.aux_min) / (LR::slide_max_inten - LR::slide_min_inten);
+	if (r.slide_idx >= 0)
+	{
+		const SlideProps& p = LR::dataset_props[r.slide_idx];
+		double sir = (p.max_preroi_inten - p.min_preroi_inten); // slide intensity range
+		val_COVERED_IMAGE_INTENSITY_RANGE = (r.aux_max - r.aux_min) / sir; //?????????????? / (LR::slide_max_inten - LR::slide_min_inten);
+	}
+	else
+		val_COVERED_IMAGE_INTENSITY_RANGE = 1;
 
 	double n = r.aux_area;
 

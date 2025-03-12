@@ -210,6 +210,7 @@ set(SOURCE
 	src/nyx/output_2_buffer.cpp
 	src/nyx/output_2_csv.cpp
 	src/nyx/output_writers.cpp
+	src/nyx/parallel.cpp
 	src/nyx/phase1.cpp
 	src/nyx/phase2.cpp
 	src/nyx/phase3.cpp
@@ -221,7 +222,10 @@ set(SOURCE
 	src/nyx/roi_cache.cpp
 	src/nyx/roi_cache_basic.cpp
 	src/nyx/scan_fastloader_way.cpp
+	src/nyx/slideprops.cpp
 	src/nyx/strpat.cpp
+	src/nyx/workflow_3d.cpp
+	src/nyx/workflow_segmented.cpp
 	src/nyx/workflow_wholeslide.cpp
 )
 

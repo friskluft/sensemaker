@@ -1,49 +1,13 @@
 #include <algorithm>
 #include <iomanip>
-#include "version.h"
-#include "dirs_and_files.h"
-#include "environment.h"
 #include "globals.h"
-#include "save_option.h"
-#include "arrow_output_stream.h"
+#include "environment.h"
+#include "version.h"
 #ifdef USE_GPU
 	#include "gpu/gpu.h"
 #endif
 
-
 using namespace Nyxus;
-
-namespace Nyxus 
-{
-
-	int processDataset(
-		const std::vector<std::string>& intensFiles, 
-		const std::vector<std::string>& labelFiles, 
-		int numFastloaderThreads, 
-		int numSensemakerThreads, 
-		int numReduceThreads, 
-		int min_online_roi_size, 
-		const SaveOption saveOption, 
-		const std::string& outputPath);
-
-	int processDataset_wholeslide (
-		const std::vector<std::string> & intensFiles,
-		const std::vector<std::string> & labelFiles,
-		int n_threads,
-		int min_online_roi_size,
-		const SaveOption saveOption,
-		const std::string & outputPath);
-
-	int processDataset_3D(
-		const std::vector <Imgfile3D_layoutA>& intensFiles,
-		const std::vector <Imgfile3D_layoutA>& labelFiles,
-		int numFastloaderThreads,
-		int numSensemakerThreads,
-		int numReduceThreads,
-		int min_online_roi_size,
-		const SaveOption saveOption,
-		const std::string& outputPath);
-};
 
 int main (int argc, char** argv)
 {
@@ -115,7 +79,7 @@ int main (int argc, char** argv)
 		int min_online_roi_size = 0;
 
 		if (theEnvironment.singleROI)
-			errorCode = processDataset_wholeslide (
+			errorCode = processDataset_2D_wholeslide (
 				intensFiles,
 				labelFiles,
 				theEnvironment.n_reduce_threads,
@@ -123,7 +87,7 @@ int main (int argc, char** argv)
 				theEnvironment.saveOption,
 				theEnvironment.output_dir);
 		else
-			errorCode = processDataset(
+			errorCode = processDataset_2D_segmented (
 				intensFiles,
 				labelFiles,
 				theEnvironment.n_loader_threads,
@@ -201,7 +165,7 @@ int main (int argc, char** argv)
 			// Process the image data
 			int min_online_roi_size = 0;
 
-			errorCode = processDataset_3D (
+			errorCode = processDataset_3D_segmented (
 				intensFiles,
 				labelFiles,
 				theEnvironment.n_loader_threads,

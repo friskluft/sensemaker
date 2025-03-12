@@ -66,13 +66,8 @@ namespace Nyxus
 						label = (*spL)[i];
 
 					// Skip non-mask pixels
-					if (!label)
-					{
-						//????????????????	// Update zero-background area
-						//????????????????	zero_background_area++;
-
+					if (! label)
 						continue;
-					}
 
 					int y = row * th + i / tw,
 						x = col * tw + i % tw;
@@ -175,9 +170,9 @@ namespace Nyxus
 		roi.aux_max = maxI;
 		roi.aabb.init_from_widthheight (fullwidth, fullheight);
 
-		// Per-slide UINT32 intensity range (conversion is done in theImLoader.load_tile(row, col) / LoadImage)
-		LR::slide_min_inten = minI;
-		LR::slide_max_inten = maxI;
+		//?????? // Per-slide UINT32 intensity range (conversion is done in theImLoader.load_tile(row, col) / LoadImage)
+		//?????? LR::slide_min_inten = minI;
+		//?????? LR::slide_max_inten = maxI;
 
 		return true;
 	}
@@ -192,8 +187,8 @@ namespace Nyxus
 		theIntFname = intens_fpath;
 		theSegFname = mask_fpath;
 
-		// Reset per-image counters and extrema
-		LR::reset_global_stats();
+		//????????????	// Reset per-image counters and extrema
+		//????????????	LR::reset_global_stats();
 
 		int lvl = 0, // Pyramid level
 			lyr = 0; //	Layer

@@ -1,8 +1,6 @@
-#include <sstream>
-
 #define _USE_MATH_DEFINES	// For M_PI, etc.
 #include <cmath>
-
+#include <sstream>
 #include "radial_distribution.h"
 #include "image_matrix.h"
 #include "../globals.h"

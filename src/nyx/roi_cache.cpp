@@ -8,22 +8,26 @@ size_t LR::dataset_max_n_rois = 0;
 size_t LR::dataset_max_roi_area = 0;
 size_t LR::dataset_max_roi_w = 0;
 size_t LR::dataset_max_roi_h = 0;
-PixIntens LR::slide_min_inten = 0;
-PixIntens LR::slide_max_inten = 0;
+//?????? PixIntens LR::slide_min_inten = 0;
+//?????? PixIntens LR::slide_max_inten = 0;
 
 void LR::reset_dataset_props()
 {
 	dataset_props.clear();
 }
 
+/* ?????????????????
 void LR::reset_global_stats()
 {
 	LR::slide_min_inten = UINT_MAX;
 	LR::slide_max_inten = 0;
 }
+*/
 
 LR::LR()
-{}
+{
+	slide_idx = -1;
+}
 
 bool LR::nontrivial_roi (size_t memory_limit) 
 { 
