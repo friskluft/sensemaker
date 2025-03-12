@@ -207,6 +207,7 @@ set(SOURCE
 	src/nyx/gpucache.cpp
 	src/nyx/globals.cpp
 	src/nyx/image_loader.cpp
+	src/nyx/output_2_apache.cpp
 	src/nyx/output_2_buffer.cpp
 	src/nyx/output_2_csv.cpp
 	src/nyx/output_writers.cpp
