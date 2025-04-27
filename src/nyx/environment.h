@@ -6,10 +6,12 @@
 
 #include "arrow_output_stream.h"
 #include "environment_basic.h"
+#include "cli_anisotropy_options.h"
 #include "cli_fpimage_options.h"
 #include "cli_gabor_options.h"
 #include "cli_glcm_options.h"
 #include "cli_nested_roi_options.h"
+#include "cli_result_options.h"
 #include "roi_blacklist.h"
 #include "save_option.h"
 
@@ -28,8 +30,6 @@
 #define FILEPATTERN "--filePattern"				// Environment :: file_pattern
 #define OUTPUTTYPE "--outputType"				// Environment :: Output type for feature values (speratecsv, singlecsv, arrow, parquet)
 #define EMBPIXSZ "--embeddedpixelsize"			// Environment :: embedded_pixel_size
-#define LOADERTHREADS "--loaderThreads"			// Environment :: n_loader_threads
-#define PXLSCANTHREADS "--pxlscanThreads"		// Environment :: n_pixel_scan_threads
 #define REDUCETHREADS "--reduceThreads"			// Environment :: n_reduce_threads
 #define VERBOSITY "--verbose"					// Environment :: verbosity_level	-- Example: --verbosity=3
 #define ONLINESTATSTHRESH "--onlineStatsThresh" // Environment :: onlineStatsThreshold	-- Example: --onlineStatsThresh=150
@@ -76,6 +76,18 @@
 #define FPIMAGE_MIN "--fpimgmin"				// Expected voxel min intensity
 #define FPIMAGE_MAX "--fpimgmax"				// Expected voxel max intensity
 
+// Anisotropy
+#define ANISO_X "--anisox"
+#define ANISO_Y "--anisoy"
+#define ANISO_Z "--anisoz"
+
+// Result options
+#define NOVAL "--noval"						// -> raw_noval
+#define TINYVAL "--tinyval"					// -> raw_tiny
+#define AGGREGATE "--aggr"				// -> raw_aggregate
+#define ANNOTATE "--annot"				// -> raw_annotate
+#define ANNOT_SEP "--annotsep"		// -> raw_anno_separator
+
 // Valid values of 'OUTPUTTYPE'
 #define OT_SEPCSV "separatecsv"
 #define OT_SINGLECSV "singlecsv"
@@ -120,12 +132,6 @@ public:
 	std::string rawFeatures;
 	std::vector<std::string> recognizedFeatureNames;
 
-	std::string loader_threads = "";
-	int n_loader_threads = 1;
-
-	std::string pixel_scan_threads = "";
-	int n_pixel_scan_threads = 1;
-
 	std::string reduce_threads = "";
 	int n_reduce_threads = 4;
 
@@ -153,7 +159,6 @@ public:
 	void expand_featuregroups();
 
 	void expand_IMQ_featuregroups();
-
 
 	static bool gpu_is_available();
 
@@ -203,11 +208,15 @@ public:
 	bool parse_fpimage_options_raw_inputs (std::string& error_message);
 	FpImageOptions fpimageOptions;
 
+	std::tuple<bool, std::optional<std::string>> parse_aniso_options_raw_inputs ();
+	AnisotropyOptions anisoOptions;
+
 	// implementation of Apache options
 	bool arrow_is_enabled();
 
-	// NAN substitute in feature values
-	double nan_substitute = -999;
+	// feature result options (yes/no to annotation columns, yes/no to aggregate by slide, NAN substitute, etc)
+	ResultOptions resultOptions;
+	std::tuple<bool, std::optional<std::string>> parse_result_options_4cli ();
 
 private:
 

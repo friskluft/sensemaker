@@ -657,6 +657,8 @@ namespace Nyxus
 		{ "3VARIANCE", Nyxus::Feature3D::VARIANCE },
 		{ "3VARIANCE_BIASED", Nyxus::Feature3D::VARIANCE_BIASED },
 
+		
+		#if 0 // 3D features planned for a future PR
 		// Morphology
 		{ "3AREA", Feature3D::AREA },
 		{ "3MESH_VOLUME", Feature3D::MESH_VOLUME },
@@ -700,6 +702,7 @@ namespace Nyxus
 		{ "3SPAT_MOMENT_22", Feature3D::SPAT_MOMENT_22 },
 		{ "3SPAT_MOMENT_23", Feature3D::SPAT_MOMENT_23 },
 		{ "3SPAT_MOMENT_30", Feature3D::SPAT_MOMENT_30 },
+		#endif	
 
 		// Texture / GLCM
 		{ "3GLCM_ACOR", Feature3D::GLCM_ACOR },
@@ -945,7 +948,6 @@ bool FeatureSet::find_2D_GroupByString (
 		enable = name[0] == '+' ? 1 : -1;
 	}
 
-
 	// search
 	auto itr = Nyxus::UserFacing2dFeaturegroupNames.find (s);
 
@@ -957,43 +959,60 @@ bool FeatureSet::find_2D_GroupByString (
 	return true;
 }
 
-bool FeatureSet::find_3D_FeatureByString (const std::string & name, Feature3D & f)
+bool FeatureSet::find_3D_FeatureByString (const std::string & name, int & f)
 {
+	int enable = 1;
+
 	// strip possible set operation '+' or '-'
 	std::string s = name;
 
-	if (name[0] == '-' || name[0] == '+')
-		s = name.substr(1);
+	// digest optional unary operator (sign)
+	if (std::ispunct(name[0]))
+		if (name[0] == '-' || name[0] == '+')
+		{
+			s = name.substr(1);
+			enable = name[0] == '+' ? 1 : -1;
+		}
+		else
+			return false; // invalid unary operator
 
 	// search
-	auto it_f = Nyxus::UserFacing_3D_featureNames.find (s);
+	auto it_f = Nyxus::UserFacing_3D_featureNames.find(s);
 
 	if (it_f == Nyxus::UserFacing_3D_featureNames.end())
 		return false;
 
-	f = it_f->second;
+	f = enable * (int)it_f->second;
+
 	return true;
 }
 
-bool FeatureSet::find_3D_GroupByString (const std::string & name, Fgroup3D & grpCode)
+bool FeatureSet::find_3D_GroupByString (const std::string & name, int & grpCode)
 {
+	int enable = 1;
+
 	// strip possible set operation '+' or '-'
 	std::string s = name;
 
+	// digest optional unary operator (sign)
 	if (name[0] == '-' || name[0] == '+')
+	{
 		s = name.substr(1);
+		enable = name[0] == '+' ? 1 : -1;
+	}
 
 	// search
-	auto itr = Nyxus::UserFacing3dFeaturegroupNames.find (s);
+	auto itr = Nyxus::UserFacing3dFeaturegroupNames.find(s);
 
 	if (itr == Nyxus::UserFacing3dFeaturegroupNames.end())
 		return false;
 
-	grpCode = itr->second;
+	grpCode = enable * (int)itr->second;
+
 	return true;
 }
 
-bool FeatureSet::find_IMQ_FeatureByString (const std::string & name, FeatureIMQ& f)
+bool FeatureSet::find_IMQ_FeatureByString (const std::string & name, int & f)
 {
 	// strip possible set operation '+' or '-'
 	std::string s = name;
@@ -1007,11 +1026,11 @@ bool FeatureSet::find_IMQ_FeatureByString (const std::string & name, FeatureIMQ&
 	if (it_f == Nyxus::UserFacingIMQFeatureNames.end())
 		return false;
 
-	f = it_f->second;
+	f = (int) it_f->second;
 	return true;
 }
 
-bool FeatureSet::find_IMQ_GroupByString (const std::string & name, FgroupIMQ & grpCode)
+bool FeatureSet::find_IMQ_GroupByString (const std::string & name, int & grpCode)
 {
 	// strip possible set operation '+' or '-'
 	std::string s = name;
@@ -1025,7 +1044,7 @@ bool FeatureSet::find_IMQ_GroupByString (const std::string & name, FgroupIMQ & g
 	if (itr == Nyxus::UserFacingIMQFeaturegroupNames.end())
 		return false;
 
-	grpCode = itr->second;
+	grpCode = (int) itr->second;
 	return true;
 }
 

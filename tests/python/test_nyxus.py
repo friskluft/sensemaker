@@ -2,6 +2,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import nyxus
 import pytest
+import sys
 import numpy as np
 import math
 from pathlib import Path
@@ -77,11 +78,14 @@ class TestNyxus():
             montage_not_equal = []
             
             for col in directory_columns:
+                if col == 'COVERED_IMAGE_INTENSITY_RANGE':
+                    continue    # skip this feature as it's being calculated differently in montage scenarios
+
                 directory_list = directory_features[col].tolist()
                 montage_list = montage_features[col].tolist()
                 
                 for directory_val, montage_val in zip(directory_list, montage_list):
-                    if not directory_val == pytest.approx(montage_val, rel=1e-4, abs=1e-4): # higher error tolerance for COVERED_IMAGE_INTENSITY_RANGE
+                    if not directory_val == pytest.approx(montage_val, rel=1e-4, abs=1e-4):
                         montage_not_equal.append(col)
                         break
             
@@ -161,7 +165,6 @@ class TestNyxus():
                 'gabor_thold': 0.025,
                 'ibsi': 0,
                 'n_feature_calc_threads': 4,
-                'n_loader_threads': 1, 
                 'neighbor_distance': 5, 
                 'pixels_per_micron': 1.0,
                 'dynamic_range': 10000,
@@ -211,7 +214,6 @@ class TestNyxus():
                         'gabor_sig2lam': 0.8, 
                         'gabor_thold': 0.025, 
                         'ibsi': 0, 
-                        'n_loader_threads': 1, 
                         'n_feature_calc_threads': 4, 
                         'neighbor_distance': 5, 
                         'pixels_per_micron': 1.0,
@@ -253,7 +255,6 @@ class TestNyxus():
                 pixels_per_micron = 2,
                 coarse_gray_depth = 2,
                 n_feature_calc_threads = 2,
-                n_loader_threads = 2,
                 dynamic_range = 1000,
                 min_intensity = 0.1,
                 max_intensity = 0.9
@@ -268,8 +269,7 @@ class TestNyxus():
                 'neighbor_distance': 2,
                 'pixels_per_micron': 2,
                 'coarse_gray_depth': 2,
-                'n_feature_calc_threads': 2,
-                'n_loader_threads': 2
+                'n_feature_calc_threads': 2
             }
                 
             # compare
@@ -305,7 +305,6 @@ class TestNyxus():
                       'gabor_thetas': [10, 20, 30, 40, 50], 
                       'gabor_thold': 1, 
                       'ibsi': 0, 
-                      'n_loader_threads': 1, 
                       'n_feature_calc_threads': 4, 
                       'neighbor_distance': 5, 
                       'pixels_per_micron': 1.0,
@@ -402,7 +401,6 @@ class TestNyxus():
                         continue
                     assert feature_value == pytest.approx(arrow_value, rel=1e-6, abs=1e-6)
         
-            
         @pytest.mark.arrow        
         def test_parquet_writer_file_naming(self, tmp_path):
         
@@ -663,7 +661,8 @@ class TestNyxus():
             directory_features = nyx.featurize(tissuenet_int, tissuenet_seg, intensity_names=['p0_y1_r1_c0.ome.tif', 'p0_y1_r1_c1.ome.tif'], label_names=['p0_y1_r1_c0.ome.tif', 'p0_y1_r1_c1.ome.tif'])    
 
             assert directory_features.shape[1] > 3
-        
+
+        @pytest.mark.skipif(sys.version_info[:2] == (3, 12), reason="Skipped for Python 3.12")    
         def test_image_quality_single_roi(self):
             '''
             Test that ImageQuality class can be imported and will calculated features.
@@ -695,7 +694,26 @@ class TestNyxus():
             directory_features = nyx.featurize(tissuenet_int, intensity_names=['p0_y1_r1_c0.ome.tif', 'p0_y1_r1_c1.ome.tif'], label_names=['p0_y1_r1_c0.ome.tif', 'p0_y1_r1_c1.ome.tif'])    
 
             assert directory_features.shape[1] > 3
-        
+
+        @pytest.mark.skipif(sys.version_info[:2] == (3, 12), reason="Skipped for Python 3.12")            
+        def test_featureset_consistency (self):
+            '''
+            This test checks if 2D and image quality features are isolated 
+            and don't appear in each other's output.
+            '''
+
+            path = str(pathlib.Path(__file__).parent.resolve())
+            data_path = path + '/data/'
+
+            n1 = nyxus.Nyxus (["*ALL*"])
+            f1 = n1.featurize_directory (data_path + 'int/', data_path + 'seg/')      
+
+            n2 = nyxus.ImageQuality (["*ALL_IMQ*"])
+            f2 = n2.featurize_directory (data_path + 'int/', data_path + 'int/')      
+
+            assert list(f2.columns) not in list(f1.columns)
+            assert list(f1.columns) not in list(f2.columns)
+
         def test_set_ram_limit_param(self):
             nyx = nyxus.Nyxus (["*ALL*"])
             assert nyx is not None

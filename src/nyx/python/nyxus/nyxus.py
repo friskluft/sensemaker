@@ -36,7 +36,6 @@ class Nyxus:
             pixels_per_micron = 1.0,
             coarse_gray_depth= 256, 
             n_feature_calc_threads = 4,
-            n_loader_threads = 1,
             use_gpu_device = 2,
             ibsi = False,
             gabor_kersize = 16,
@@ -76,10 +75,6 @@ class Nyxus:
         Custom number of levels in grayscale denoising used in texture features.
     n_feature_calc_threads: int (optional, default 4)
         Number of threads to use for feature calculation parallelization purposes.
-    n_loader_threads: int (optional, default 1)
-        Number of threads to use for loading image tiles from disk. Note: image loading
-        multithreading is very memory intensive. You should consider optimizing
-        `n_feature_calc_threads` before increasing `n_loader_threads`.
     use_gpu_device: int (optional, default -1)
         Id of the gpu to use. To find available gpus along with ids, using nyxus.get_gpu_properties().
         The default value of -1 uses cpu calculations. Note that the gpu features only support a single 
@@ -119,6 +114,10 @@ class Nyxus:
         Maximum amount of ram to be used by Nyxus in megabytes
     verbose: int (optional, default 0)
         Level of diagnostic information in the standard output. Non-negative. 0 is no diagnostic output.
+    anisotropy_x: float (optional, default 1.0)
+        X-dimension scale factor
+    anisotropy_y: float (optional, default 1.0)
+        Y-dimension scale factor
     """
 
     def __init__(
@@ -128,11 +127,12 @@ class Nyxus:
         ):
         valid_keys = {
             'neighbor_distance', 'pixels_per_micron', 'coarse_gray_depth',
-            'n_feature_calc_threads', 'n_loader_threads', 'use_gpu_device', 'ibsi',
+            'n_feature_calc_threads', 'use_gpu_device', 'ibsi',
             'gabor_kersize', 'gabor_gamma', 'gabor_sig2lam', 'gabor_f0',
             'gabor_thold', 'gabor_thetas', 'gabor_freqs', 'channel_signature', 
             'parent_channel', 'child_channel', 'aggregate', 'dynamic_range', 'min_intensity',
-            'max_intensity', 'ram_limit', 'verbose'
+            'max_intensity', 'ram_limit', 'verbose',
+            'anisotropy_x', 'anisotropy_y'
         }
 
         # Check for unexpected keyword arguments
@@ -146,7 +146,6 @@ class Nyxus:
         pixels_per_micron = kwargs.get('pixels_per_micron', 1.0)
         coarse_gray_depth = kwargs.get('coarse_gray_depth', 64)
         n_feature_calc_threads = kwargs.get('n_feature_calc_threads', 4)
-        n_loader_threads = kwargs.get('n_loader_threads', 1)
         use_gpu_device = kwargs.get('use_gpu_device', -1)
         ibsi = kwargs.get('ibsi', False)
         gabor_kersize = kwargs.get('gabor_kersize', 16)
@@ -161,6 +160,8 @@ class Nyxus:
         max_intensity = kwargs.get('max_intensity', 1.0)
         ram_limit = kwargs.get('ram_limit', -1)
         verb_lvl = kwargs.get('verbose', 0)
+        aniso_x = kwargs.get('anisotropy_x', 1.0)
+        aniso_y = kwargs.get('anisotropy_y', 1.0)
         
         if neighbor_distance <= 0:
             raise ValueError("Neighbor distance must be greater than zero.")
@@ -174,14 +175,19 @@ class Nyxus:
         if n_feature_calc_threads < 1:
             raise ValueError("There must be at least one feature calculation thread.")
 
-        if n_loader_threads < 1:
-            raise ValueError("There must be at least one loader thread.")
-                    
         if use_gpu_device > -1 and not gpu_available():
             raise ValueError ("No need to set GPU device ID because GPU is unavailable")
 
         if verb_lvl < 0:
             raise ValueError ("verbosity must be non-negative")
+
+        if aniso_x <= 0:
+            raise ValueError ("anisotropy_x must be positive")
+
+        if aniso_y <= 0:
+            raise ValueError ("anisotropy_y must be positive")
+
+        aniso_z = 1.0   # not used in 2D
 
         initialize_environment(
             2, # 2D
@@ -190,7 +196,6 @@ class Nyxus:
             pixels_per_micron,
             coarse_gray_depth, 
             n_feature_calc_threads,
-            n_loader_threads,
             use_gpu_device,
             ibsi,
             dynamic_range,
@@ -198,7 +203,10 @@ class Nyxus:
             max_intensity,
             False,
             ram_limit,
-            verb_lvl)
+            verb_lvl,
+            aniso_x,
+            aniso_y,
+            aniso_z) 
         
         self.set_gabor_feature_params(
             kersize = gabor_kersize,
@@ -342,7 +350,6 @@ class Nyxus:
         """
         if (output_type != "" and output_type not in self._valid_output_types):
             raise ValueError(f'Invalid output type: {output_type}. Valid options are: {self._valid_output_types}')
-            
         
         # verify argument types
         if not isinstance(intensity_images, np.ndarray):
@@ -392,7 +399,6 @@ class Nyxus:
         if (label_images.shape[0] != len(label_names)):
             raise ValueError("Number of segmentation names must be the same as the number of images.")
         
-    
         if (output_type == 'pandas'):
                 
             header, string_data, numeric_data, error_message = featurize_montage_imp (intensity_images, label_images, intensity_names, label_names, output_type, "")
@@ -654,7 +660,6 @@ class Nyxus:
         pixels_per_micron = params.get ('pixels_per_micron', -1)
         coarse_gray_depth = params.get ('coarse_gray_depth', 0)
         n_reduce_threads = params.get ('n_feature_calc_threads', 0)
-        n_loader_threads = 1
         use_gpu_device = params.get ('use_gpu_device', -1)
         verb_lvl = params.get ('verbose', 0)
         dynamic_range = params.get('dynamic_range', -1)
@@ -668,7 +673,6 @@ class Nyxus:
                                    pixels_per_micron,
                                    coarse_gray_depth,
                                    n_reduce_threads,
-                                   n_loader_threads,
                                    use_gpu_device,
                                    dynamic_range,
                                    min_intensity,
@@ -686,7 +690,6 @@ class Nyxus:
         * pixels_per_micron
         * coarse_gray_depth
         * n_feature_calc_threads
-        * n_loader_threads
         * use_gpu_device
         * ibsi: bool
         * dynamic_range (float): Desired dynamic range of voxels of a floating point TIFF image.
@@ -708,7 +711,6 @@ class Nyxus:
             "pixels_per_micron",
             "coarse_gray_depth",
             "n_feature_calc_threads",
-            "n_loader_threads",
             "use_gpu_device",
             "ibsi",
             "dynamic_range",
@@ -752,7 +754,6 @@ class Nyxus:
         * pixels_per_micron
         * coarse_gray_depth
         * n_feature_calc_threads
-        * n_loader_threads
         * using_gpu
         * gpu_device_id
         * ibsi: bool
@@ -889,6 +890,12 @@ class Nyxus3D:
         Maximum intensity of voxels of a floating point TIFF image.
     verbose: int (optional, default 0)
         Level of diagnostic information in the standard output. Non-negative. 0 is no diagnostic output.
+    anisotropy_x: float (optional, default 1.0)
+        X-dimension scale factor
+    anisotropy_y: float (optional, default 1.0)
+        Y-dimension scale factor
+    anisotropy_z: float (optional, default 1.0)
+        Z-dimension scale factor
     """
 
     def __init__(
@@ -900,7 +907,10 @@ class Nyxus3D:
             'neighbor_distance', 'pixels_per_micron', 'coarse_gray_depth',
             'n_feature_calc_threads', 'use_gpu_device', 'ibsi', 'channel_signature', 
             'parent_channel', 'child_channel', 'aggregate', 
-            'dynamic_range', 'min_intensity', 'max_intensity', 'ram_limit'
+            'dynamic_range', 'min_intensity', 'max_intensity', 'ram_limit',
+            'anisotropy_x', 
+            'anisotropy_y',
+            'anisotropy_z'
         }
 
         # Check for unexpected keyword arguments
@@ -920,6 +930,9 @@ class Nyxus3D:
         min_intensity = kwargs.get('min_intensity', 0.0)
         max_intensity = kwargs.get('max_intensity', 1.0)
         verb_lvl = kwargs.get ('verbose', 0)
+        aniso_x = kwargs.get('anisotropy_x', 1.0)
+        aniso_y = kwargs.get('anisotropy_y', 1.0)
+        aniso_z = kwargs.get('anisotropy_z', 1.0)
         
         if neighbor_distance <= 0:
             raise ValueError("Neighbor distance must be greater than zero.")
@@ -946,6 +959,15 @@ class Nyxus3D:
         if verb_lvl < 0:
             raise ValueError ("verbosity must be non-negative")
 
+        if aniso_x <= 0:
+            raise ValueError ("anisotropy_x must be positive")
+
+        if aniso_y <= 0:
+            raise ValueError ("anisotropy_y must be positive")
+
+        if aniso_z <= 0:
+            raise ValueError ("anisotropy_z must be positive")
+
         initialize_environment(
             3, # 3D
             features,
@@ -953,7 +975,6 @@ class Nyxus3D:
             pixels_per_micron,
             coarse_gray_depth, 
             n_feature_calc_threads,
-            1, # n_loader_threads
             using_gpu,
             ibsi,
             dynamic_range,
@@ -961,7 +982,10 @@ class Nyxus3D:
             max_intensity,
             False,
             ram_limit,
-            verb_lvl)
+            verb_lvl,
+            aniso_x,
+            aniso_y,
+            aniso_z)
         
         # list of valid outputs that are used throughout featurize functions
         self._valid_output_types = ['pandas', 'arrowipc', 'parquet']
@@ -1086,7 +1110,6 @@ class Nyxus3D:
         pixels_per_micron = params.get ('pixels_per_micron', -1)
         coarse_gray_depth = params.get ('coarse_gray_depth', 0)
         n_reduce_threads = params.get ('n_feature_calc_threads', 0)
-        n_loader_threads = 1
         use_gpu_device = params.get ('use_gpu_device', -1)
         verb_lvl = params.get ('verbose', 0)
         dynamic_range = params.get('dynamic_range', -1)
@@ -1099,7 +1122,6 @@ class Nyxus3D:
                                    pixels_per_micron,
                                    coarse_gray_depth,
                                    n_reduce_threads,
-                                   n_loader_threads,
                                    use_gpu_device,
                                    dynamic_range,
                                    min_intensity,
@@ -1251,7 +1273,6 @@ class ImageQuality:
             pixels_per_micron = 1.0,
             coarse_gray_depth= 256, 
             n_feature_calc_threads = 4,
-            n_loader_threads = 1,
             ibsi = False,
         )
 
@@ -1273,10 +1294,6 @@ class ImageQuality:
         Custom number of levels in grayscale denoising used in texture features.
     n_feature_calc_threads: int (optional, default 4)
         Number of threads to use for feature calculation parallelization purposes.
-    n_loader_threads: int (optional, default 1)
-        Number of threads to use for loading image tiles from disk. Note: image loading
-        multithreading is very memory intensive. You should consider optimizing
-        `n_feature_calc_threads` before increasing `n_loader_threads`.
     ibsi: bool (optional, default false)
        IBSI available features will be IBSI compliant when true.
     channel_signature: (optional)
@@ -1293,6 +1310,10 @@ class ImageQuality:
         Maximum intensity of voxels of a floating point TIFF image.
     verbose: int (optional, default 0)
         Level of diagnostic information in the standard output. Non-negative. 0 is no diagnostic output.
+    anisotropy_x: float (optional, default 1.0)
+        X-dimension scale factor
+    anisotropy_y: float (optional, default 1.0)
+        Y-dimension scale factor
     """
 
     def __init__(
@@ -1303,9 +1324,12 @@ class ImageQuality:
         
         valid_keys = {
             'neighbor_distance', 'pixels_per_micron', 'coarse_gray_depth',
-            'n_feature_calc_threads', 'n_loader_threads', 'ibsi',
+            'n_feature_calc_threads', 'ibsi',
             'gabor_kersize', 'gabor_gamma', 'gabor_sig2lam', 'gabor_f0',
             'channel_signature', 'min_intensity', 'max_intensity', 'ram_limit',
+            'verbose',
+            'anisotropy_x', 
+            'anisotropy_y'
         }
 
         # Check for unexpected keyword arguments
@@ -1319,7 +1343,6 @@ class ImageQuality:
         pixels_per_micron = kwargs.get('pixels_per_micron', 1.0)
         coarse_gray_depth = kwargs.get('coarse_gray_depth', 256)
         n_feature_calc_threads = kwargs.get('n_feature_calc_threads', 4)
-        n_loader_threads = kwargs.get('n_loader_threads', 1)
         using_gpu = kwargs.get('using_gpu', -1)
         ibsi = kwargs.get('ibsi', False)
         dynamic_range = kwargs.get('dynamic_range', 10000)
@@ -1327,6 +1350,8 @@ class ImageQuality:
         max_intensity = kwargs.get('max_intensity', 1.0)
         ram_limit = kwargs.get('ram_limit', -1)
         verb_lvl = kwargs.get ('verbose', 0)
+        aniso_x = kwargs.get('anisotropy_x', 1.0)
+        aniso_y = kwargs.get('anisotropy_y', 1.0)
         
         if neighbor_distance <= 0:
             raise ValueError("Neighbor distance must be greater than zero.")
@@ -1340,9 +1365,6 @@ class ImageQuality:
         if n_feature_calc_threads < 1:
             raise ValueError("There must be at least one feature calculation thread.")
 
-        if n_loader_threads < 1:
-            raise ValueError("There must be at least one loader thread.")
-        
         if(using_gpu > -1 and n_feature_calc_threads != 1):
             print("Gpu features only support a single thread. Defaulting to one thread.")
             n_feature_calc_threads = 1
@@ -1354,6 +1376,14 @@ class ImageQuality:
         if verb_lvl < 0:
             raise ValueError ("verbosity must be non-negative")
 
+        if aniso_x <= 0:
+            raise ValueError ("anisotropy_x must be positive")
+
+        if aniso_y <= 0:
+            raise ValueError ("anisotropy_y must be positive")
+
+        aniso_z = 1.0   # not used in 2D image quality assessment
+
         initialize_environment(
             2, # 2D
             features,
@@ -1361,7 +1391,6 @@ class ImageQuality:
             pixels_per_micron,
             coarse_gray_depth, 
             n_feature_calc_threads,
-            n_loader_threads,
             using_gpu,
             ibsi,
             dynamic_range,
@@ -1369,7 +1398,10 @@ class ImageQuality:
             max_intensity,
             True,
             ram_limit,
-            verb_lvl)
+            verb_lvl,
+            aniso_x,
+            aniso_y,
+            aniso_z)
         
         # list of valid outputs that are used throughout featurize functions
         self._valid_output_types = ['pandas', 'arrowipc', 'parquet']
@@ -1452,9 +1484,7 @@ class ImageQuality:
         else:
             
             featurize_directory_imp(intensity_dir, label_dir, file_pattern, output_type, output_path)
-            
             return get_arrow_file_imp() # return path to file
-
 
     def featurize(
         self,
@@ -1557,7 +1587,6 @@ class ImageQuality:
         if (label_images.shape[0] != len(label_names)):
             raise ValueError("Number of segmentation names must be the same as the number of images.")
         
-    
         if (output_type == 'pandas'):
                 
             header, string_data, numeric_data, error_message = featurize_montage_imp (intensity_images, label_images, intensity_names, label_names, output_type, "")
@@ -1814,7 +1843,6 @@ class ImageQuality:
         pixels_per_micron = params.get ('pixels_per_micron', -1)
         coarse_gray_depth = params.get ('coarse_gray_depth', 0)
         n_reduce_threads = params.get ('n_feature_calc_threads', 0)
-        n_loader_threads = 1
         use_gpu_device = params.get ('use_gpu_device', -1)
         verb_lvl = params.get ('verbose', 0)
         dynamic_range = params.get('dynamic_range', -1)
@@ -1827,7 +1855,6 @@ class ImageQuality:
                                    pixels_per_micron,
                                    coarse_gray_depth,
                                    n_reduce_threads,
-                                   n_loader_threads,
                                    use_gpu_device,
                                    dynamic_range,
                                    min_intensity,
@@ -1845,7 +1872,6 @@ class ImageQuality:
         * pixels_per_micron
         * coarse_gray_depth
         * n_feature_calc_threads
-        * n_loader_threads
         * using_gpu
         * ibsi: bool
         * dynamic_range (float): Desired dynamic range of voxels of a floating point TIFF image.
@@ -1867,12 +1893,12 @@ class ImageQuality:
             "pixels_per_micron",
             "coarse_gray_depth",
             "n_feature_calc_threads",
-            "n_loader_threads",
             "using_gpu",
             "ibsi",
             "dynamic_range",
             "min_intensity",
-            "max_intensity"
+            "max_intensity",
+            "verbose"
         ]
         
         environment_params = {}
@@ -1889,7 +1915,7 @@ class ImageQuality:
             
             else:
                 if (key not in available_environment_params):
-                    raise ValueError(f"Invalid parameter {key}.")
+                    raise ValueError(f"Invalid parameter {key}")
                 else:
                     environment_params[key] = value
                 
@@ -1910,7 +1936,6 @@ class ImageQuality:
         * pixels_per_micron
         * coarse_gray_depth
         * n_feature_calc_threads
-        * n_loader_threads
         * using_gpu
         * ibsi: bool
         * dynamic_range (float): Desired dynamic range of voxels of a floating point TIFF image.

@@ -1,14 +1,5 @@
-#include <gtest/gtest.h>
-#if __has_include(<filesystem>)
-  #include <filesystem>
-  namespace fs = std::filesystem;
-#elif __has_include(<experimental/filesystem>)
-  #include <experimental/filesystem> 
-  namespace fs = std::experimental::filesystem;
-#else
-  error "Missing the <filesystem> header."
-#endif
 #include <fstream>
+#include <gtest/gtest.h>
 #include "../src/nyx/features/gabor.h"
 #include "../src/nyx/features/intensity.h"
 #include "test_gabor.h"
@@ -27,6 +18,9 @@ void test_gabor(bool gpu)
 
         // Feed data to the ROI
         load_test_roi_data(roidata, i);
+
+        // Anisotropy (none)
+        roidata.make_nonanisotropic_aabb();
 
         // Calculate features
         GaborFeature f;

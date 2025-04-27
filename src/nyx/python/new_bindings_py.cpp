@@ -25,8 +25,6 @@ namespace Nyxus {
     int processDataset_2D_segmented (
         const std::vector<std::string>& intensFiles,
         const std::vector<std::string>& labelFiles,
-        int numFastloaderThreads,
-        int numSensemakerThreads,
         int numReduceThreads,
         int min_online_roi_size,
         const SaveOption saveOption,
@@ -43,8 +41,6 @@ namespace Nyxus {
     int processDataset_3D_segmented (
         const std::vector <Imgfile3D_layoutA>& intensFiles,
         const std::vector <Imgfile3D_layoutA>& labelFiles,
-        int numFastloaderThreads,
-        int numSensemakerThreads,
         int numReduceThreads,
         int min_online_roi_size,
         const SaveOption saveOption,
@@ -83,7 +79,6 @@ void initialize_environment(
     float pixels_per_micron,
     uint32_t coarse_gray_depth, 
     uint32_t n_reduce_threads,
-    uint32_t n_loader_threads,
     int using_gpu,
     bool ibsi,
     float dynamic_range,
@@ -91,7 +86,10 @@ void initialize_environment(
     float max_intensity,
     bool is_imq,
     int ram_limit_mb,
-    int verb_lvl)
+    int verb_lvl,
+    float aniso_x,
+    float aniso_y,
+    float aniso_z)
 {
     theEnvironment.set_imq(is_imq);
     theEnvironment.set_dim(n_dim);
@@ -101,20 +99,28 @@ void initialize_environment(
     theEnvironment.xyRes = theEnvironment.pixelSizeUm = pixels_per_micron;
     theEnvironment.set_coarse_gray_depth(coarse_gray_depth);
     theEnvironment.n_reduce_threads = n_reduce_threads;
-    theEnvironment.n_loader_threads = n_loader_threads;
     theEnvironment.ibsi_compliance = ibsi;
 
-    // Throws exception if invalid feature is supplied.
+    // Throws exception if invalid feature is passed
     theEnvironment.expand_featuregroups();
     theFeatureMgr.compile();
     theFeatureMgr.apply_user_selection();
 
+    // real-valued range hints
     theEnvironment.fpimageOptions.set_target_dyn_range(dynamic_range);
     theEnvironment.fpimageOptions.set_min_intensity(min_intensity);
     theEnvironment.fpimageOptions.set_max_intensity(max_intensity);
 
-    if (ram_limit_mb >= 0) theEnvironment.set_ram_limit(ram_limit_mb);
+    // RAM limit controlling trivial-nontrivial featurization
+    if (ram_limit_mb >= 0) 
+        theEnvironment.set_ram_limit(ram_limit_mb);
 
+    // anisotropy
+    theEnvironment.anisoOptions.set_aniso_x (aniso_x);
+    theEnvironment.anisoOptions.set_aniso_y (aniso_y);
+    theEnvironment.anisoOptions.set_aniso_z (aniso_z);
+
+    // GPU related
     #ifdef USE_GPU
         if(using_gpu == -1) 
         {
@@ -143,7 +149,6 @@ void set_environment_params_imp (
     float pixels_per_micron = -1,
     uint32_t coarse_gray_depth = 0, 
     uint32_t n_reduce_threads = 0,
-    uint32_t n_loader_threads = 0,
     int using_gpu = -2,
     float dynamic_range = -1,
     float min_intensity = -1,
@@ -171,10 +176,6 @@ void set_environment_params_imp (
         theEnvironment.n_reduce_threads = n_reduce_threads;
     }
     
-    if (n_loader_threads != 0) {
-        theEnvironment.n_loader_threads = n_loader_threads;
-    }
-
     if (dynamic_range >= 0) {
         theEnvironment.fpimageOptions.set_target_dyn_range(dynamic_range);
     }
@@ -277,8 +278,6 @@ py::tuple featurize_directory_imp (
         errorCode = processDataset_2D_segmented (
             intensFiles,
             labelFiles,
-            theEnvironment.n_loader_threads,
-            theEnvironment.n_pixel_scan_threads,
             theEnvironment.n_reduce_threads,
             min_online_roi_size,
             theEnvironment.saveOption,
@@ -290,16 +289,36 @@ py::tuple featurize_directory_imp (
     // Output the result
     if (theEnvironment.saveOption == Nyxus::SaveOption::saveBuffer)
     {
+        // has the backend produced any result ?
+        auto nRows = theResultsCache.get_num_rows();
+        if (nRows == 0)
+        {
+            VERBOSLVL2 (std::cerr << "\nfeaturize_directory_imp(): returning a blank tuple\n");
+
+            // return a blank dataframe
+            std::vector<std::string> h ({ "column1", "column2", "column3", "column4"});
+            std::vector<std::string> s ({ "blank", "blank" });
+            std::vector<double> n ({ 0, 0 });
+
+            pybind11::array pyH = py::array(py::cast(h));
+            pybind11::array pySD = py::array(py::cast(s));
+            pybind11::array pyND = as_pyarray(std::move(n));
+
+            size_t nr = 1;
+            pySD = pySD.reshape({ nr, pySD.size() / nr });
+            pyND = pyND.reshape({ nr, pyND.size() / nr });
+            return py::make_tuple (pyH, pySD, pyND);
+            
+        }
+
+        // we have informative result, package it
         auto pyHeader = py::array(py::cast(theResultsCache.get_headerBuf()));
         auto pyStrData = py::array(py::cast(theResultsCache.get_stringColBuf()));
         auto pyNumData = as_pyarray(std::move(theResultsCache.get_calcResultBuf()));
 
-        // Shape the user-facing dataframe
-        auto nRows = theResultsCache.get_num_rows();
-
+        // - shape the user-facing dataframe
         pyStrData = pyStrData.reshape ({nRows, pyStrData.size() / nRows});
         pyNumData = pyNumData.reshape ({ nRows, pyNumData.size() / nRows });
-
         return py::make_tuple (pyHeader, pyStrData, pyNumData);
     } 
 
@@ -361,8 +380,6 @@ py::tuple featurize_directory_imq_imp (
     errorCode = processDataset_2D_segmented (
         intensFiles,
         labelFiles,
-        theEnvironment.n_loader_threads,
-        theEnvironment.n_pixel_scan_threads,
         theEnvironment.n_reduce_threads,
         min_online_roi_size,
         theEnvironment.saveOption,
@@ -451,8 +468,6 @@ py::tuple featurize_directory_3D_imp(
     errorCode = processDataset_3D_segmented (
         intensFiles,
         labelFiles,
-        theEnvironment.n_loader_threads,
-        theEnvironment.n_pixel_scan_threads,
         theEnvironment.n_reduce_threads,
         min_online_roi_size,
         theEnvironment.saveOption,
@@ -619,8 +634,6 @@ py::tuple featurize_fname_lists_imp (const py::list& int_fnames, const py::list 
     errorCode = processDataset_2D_segmented (
         intensFiles,
         labelFiles,
-        theEnvironment.n_loader_threads,
-        theEnvironment.n_pixel_scan_threads,
         theEnvironment.n_reduce_threads,
         min_online_roi_size,
         theEnvironment.saveOption,
@@ -764,7 +777,6 @@ std::map<std::string, ParameterTypes> get_params_imp(const std::vector<std::stri
     params["pixels_per_micron"] = theEnvironment.xyRes;
     params["coarse_gray_depth"] = theEnvironment.get_coarse_gray_depth();
     params["n_feature_calc_threads"] = theEnvironment.n_reduce_threads;
-    params["n_loader_threads"] = theEnvironment.n_loader_threads;
     params["ibsi"] = theEnvironment.ibsi_compliance;
 
     params["gabor_kersize"] = GaborFeature::n;

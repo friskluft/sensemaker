@@ -6,19 +6,9 @@
 
 #ifdef USE_ARROW
 
-#if __has_include(<filesystem>)
-  #include <filesystem>
-  namespace fs = std::filesystem;
-#elif __has_include(<experimental/filesystem>)
-  #include <experimental/filesystem> 
-  namespace fs = std::experimental::filesystem;
-#else
-  error "Missing the <filesystem> header."
-#endif
-
 #include <iostream>
 #include <parquet/arrow/reader.h>
-
+#include "helpers/fsystem.h"
 #include "helpers/helpers.h"
 
 
@@ -152,7 +142,7 @@ arrow::Status ParquetWriter::write (const std::vector<std::tuple<std::vector<std
         {
             // prevent NANs in the output
             double fval = std::get<2>(features[i])[j];
-            fval = Nyxus::force_finite_number (fval, Nyxus::theEnvironment.nan_substitute);
+            fval = Nyxus::force_finite_number (fval, Nyxus::theEnvironment.resultOptions.noval());
             append_status = builder.Append (fval);
 
             if (!append_status.ok()) {
@@ -314,7 +304,7 @@ arrow::Status ArrowIPCWriter::write (const std::vector<std::tuple<std::vector<st
         {
             // prevent NANs in the output
             double fval = std::get<2>(features[i])[j];
-            fval = Nyxus::force_finite_number (fval, Nyxus::theEnvironment.nan_substitute);
+            fval = Nyxus::force_finite_number (fval, Nyxus::theEnvironment.resultOptions.noval());
             append_status = builder.Append (fval);
 
             if (!append_status.ok()) {

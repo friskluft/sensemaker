@@ -3,6 +3,7 @@
 #include <vector>
 #include "environment.h"
 #include "globals.h"
+#include "helpers/fsystem.h"
 #include "helpers/timing.h"
 #include "raw_image_loader.h"
 
@@ -10,6 +11,11 @@ namespace Nyxus
 {
 	bool gatherRoisMetrics_2_slideprops (RawImageLoader & ilo, SlideProps & p)
 	{
+		// low-level slide properties (intensity and mask, if available)
+		p.lolvl_slide_descr = ilo.get_slide_descr();
+
+		// scan intensity slide's data
+
 		bool wholeslide = p.fname_seg.empty();
 
 		double slide_I_max = (std::numeric_limits<double>::min)(),
@@ -31,6 +37,7 @@ namespace Nyxus
 			fullwidth = ilo.get_full_width(),
 			fullheight = ilo.get_full_height();
 
+		// iterate abstract tiles (in a tiled slide /e.g. tiled tiff/ they correspond to physical tiles, in a nontiled slide /e.g. scanline tiff or strip tiff/ they correspond to )
 		int cnt = 1;
 		for (unsigned int row = 0; row < nth; row++)
 			for (unsigned int col = 0; col < ntv; col++)
@@ -81,14 +88,13 @@ namespace Nyxus
 						U.insert(msk);
 
 						// Initialize the ROI label record
-						LR r;
+						LR r (msk);
+
 						//		- mocking init_label_record_2(newData, theSegFname, theIntFname, x, y, label, intensity, tile_index)
 						// Initialize basic counters
 						r.aux_area = 1;
 						r.aux_min = r.aux_max = 0; //we don't have uint-cast intensities at this moment
 						r.init_aabb(x, y);
-						// Cache the ROI label
-						r.label = msk;
 
 						//		- not storing file names (r.segFname = segFile, r.intFname = intFile) but will do so in the future
 
@@ -122,6 +128,28 @@ namespace Nyxus
 				);
 			} // foreach tile
 
+		//****** fix ROIs' AABBs with respect to anisotropy
+
+		if (theEnvironment.anisoOptions.customized() == false)
+		{
+			for (auto& pair : R)
+			{
+				LR& r = pair.second;
+				r.make_nonanisotropic_aabb();
+			}
+		}
+		else
+		{
+			double	ax = theEnvironment.anisoOptions.get_aniso_x(),
+				ay = theEnvironment.anisoOptions.get_aniso_y();
+
+			for (auto& pair : R)
+			{
+				LR& r = pair.second;
+				r.make_anisotropic_aabb(ax, ay);
+			}
+		}
+			  
 		//****** Analysis
 
 		// slide-wide (max ROI area) x (number of ROIs)
@@ -131,9 +159,15 @@ namespace Nyxus
 		{
 			const LR& r = pair.second;
 			maxArea = maxArea > r.aux_area ? maxArea : r.aux_area; //std::max (maxArea, r.aux_area);
-			max_w = max_w > r.aabb.get_width() ? max_w : r.aabb.get_width();
-			max_h = max_h > r.aabb.get_height() ? max_h : r.aabb.get_height();
+			const AABB& bb = r.aabb;
+			auto w = bb.get_width();
+			auto h = bb.get_height();
+			max_w = max_w > w ? max_w : w;
+			max_h = max_h > h ? max_h : h;
 		}
+
+		p.slide_w = fullwidth;
+		p.slide_h = fullheight;
 
 		p.max_preroi_inten = slide_I_max;
 		p.min_preroi_inten = slide_I_min;
@@ -146,10 +180,29 @@ namespace Nyxus
 		return true;
 	}
 
+	std::pair <std::string, std::string> split_alnum (const std::string & annot)
+	{
+		std::string A = annot; // a string that we can edit
+		std::string al;
+		for (auto c : A)
+		{
+			if (!std::isdigit(c))
+				al += c;
+			else
+			{
+				A.erase (0, al.size());
+				break;
+			}
+		}
+
+		return {al, A};
+	}
+
+
 	//
 	// prerequisite: initialized fields fname_int and  fname_seg
 	//
-	bool scan_slide_props (SlideProps & p)
+	bool scan_slide_props (SlideProps & p, bool need_annot)
 	{
 		RawImageLoader ilo;
 		if (! ilo.open(p.fname_int, p.fname_seg))
@@ -165,6 +218,28 @@ namespace Nyxus
 		}
 
 		ilo.close();
+
+		// annotations
+		if (need_annot)
+		{
+			// throw away the directory part
+			fs::path pth(p.fname_seg);
+			auto purefn = pth.filename().string();
+
+			// LHS part till the 1st dot is the annotation info that we need to parse
+			std::vector<std::string>toks1;
+			Nyxus::parse_delimited_string (purefn, ".", toks1);
+
+			// the result tokens is the annotation info that we need
+			p.annots.clear();
+			Nyxus::parse_delimited_string (toks1[0], "_", p.annots);
+
+			// prune blank annotations (usually caused by multiple separator e.g. '__' in 'slide_blah1_bla_2__something3.ome.tiff')
+			p.annots.erase (
+				std::remove_if (p.annots.begin(), p.annots.end(), [](const std::string & s) { return s.empty(); }),
+				p.annots.end());
+		}
+
 
 		return true;
 	}

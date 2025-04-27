@@ -18,7 +18,7 @@
 
 namespace Nyxus
 {
-	bool gatherRoisMetrics (const std::string & intens_fpath, const std::string & label_fpath, ImageLoader & L)
+	bool gatherRoisMetrics (int sidx, const std::string & intens_fpath, const std::string & label_fpath, ImageLoader & L)
 	{
 		// Reset per-image counters and extrema
 		//	 -- disabling this due to new prescan functionality-->	LR::reset_global_stats();
@@ -54,7 +54,6 @@ namespace Nyxus
 				}
 
 				// Get ahold of tile's pixel buffer
-				auto tileIdx = row * nth + col;
 				const std::vector<uint32_t>& dataI = L.get_int_tile_buffer();
 				const std::shared_ptr<std::vector<uint32_t>>& spL = L.get_seg_tile_sptr();
 				bool wholeslide = spL == nullptr; // alternatively, theEnvironment.singleROI
@@ -79,7 +78,7 @@ namespace Nyxus
 						continue;
 
 					// Update pixel's ROI metrics
-					feed_pixel_2_metrics (x, y, dataI[i], label, tileIdx); // Updates 'uniqueLabels' and 'roiData'
+					feed_pixel_2_metrics (x, y, dataI[i], label, sidx); // Updates 'uniqueLabels' and 'roiData'
 				}
 
 #ifdef WITH_PYTHON_H
@@ -93,6 +92,27 @@ namespace Nyxus
 						std::cout << "\t" << int((row * nth + col) * 100 / float(nth * ntv) * 100) / 100. << "%\t" << uniqueLabels.size() << " ROIs" << "\n";
 				);
 			}
+
+		// fix ROIs' AABBs with respect to anisotropy
+		if (theEnvironment.anisoOptions.customized() == false)
+		{
+			for (auto& rd : roiData)
+			{
+				LR& r = rd.second;
+				r.make_nonanisotropic_aabb ();
+			}
+		}
+		else
+		{
+			double	ax = theEnvironment.anisoOptions.get_aniso_x(),
+						ay = theEnvironment.anisoOptions.get_aniso_y();
+
+			for (auto& rd : roiData)
+			{
+				LR& r = rd.second;
+				r.make_anisotropic_aabb (ax, ay);
+			}
+		}
 
 		return true;
 	}
@@ -134,7 +154,6 @@ namespace Nyxus
 				}
 
 				// Get ahold of tile's pixel buffer
-				auto tileIdx = row * nth + col;
 				const std::vector<uint32_t>& dataI = L.get_int_tile_buffer();
 
 				// Iterate pixels
@@ -236,7 +255,6 @@ namespace Nyxus
 					}
 
 					// Get ahold of tile's pixel buffer
-					auto tileIdx = row * nth + col;
 					auto dataI = theImLoader.get_int_tile_buffer(),
 						dataL = theImLoader.get_seg_tile_buffer();
 
@@ -260,7 +278,7 @@ namespace Nyxus
 							label = 1;
 
 						// Update pixel's ROI metrics
-						feed_pixel_2_metrics_3D  (x, y, z, dataI[i], label, tileIdx); // Updates 'uniqueLabels' and 'roiData'
+						feed_pixel_2_metrics_3D  (x, y, z, dataI[i], label); // Updates 'uniqueLabels' and 'roiData'
 					}
 
 					#ifdef WITH_PYTHON_H
@@ -276,6 +294,28 @@ namespace Nyxus
 				}
 
 			theImLoader.close();
+		}
+
+		// fix ROIs' AABBs with respect to anisotropy
+		if (theEnvironment.anisoOptions.customized() == false)
+		{
+			for (auto& rd : roiData)
+			{
+				LR& r = rd.second;
+				r.make_nonanisotropic_aabb();
+			}
+		}
+		else
+		{
+			double	ax = theEnvironment.anisoOptions.get_aniso_x(),
+				ay = theEnvironment.anisoOptions.get_aniso_y(), 
+				az = theEnvironment.anisoOptions.get_aniso_z();
+
+			for (auto& rd : roiData)
+			{
+				LR& r = rd.second;
+				r.make_anisotropic_aabb (ax, ay, az);
+			}
 		}
 
 		return true;
@@ -301,14 +341,12 @@ namespace Nyxus
 				if (!label)
 					continue;
 
-
 				// Collapse all the labels to one if single-ROI mde is requested
 				if (theEnvironment.singleROI)
 					label = 1;
-				
+
 				// Update pixel's ROI metrics
-				feed_pixel_2_metrics (row, col, dataI[start_idx + row * height + col], label, 200); // Updates 'uniqueLabels' and 'roiData'
-				
+				feed_pixel_2_metrics (row, col, dataI[start_idx + row * height + col], label, -1); // Updates 'uniqueLabels' and 'roiData'. Using slide_idx=-1
 
 				if (PyErr_CheckSignals() != 0)
 					throw pybind11::error_already_set();

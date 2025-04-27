@@ -162,9 +162,12 @@ namespace Nyxus
 
 		rescache.inc_num_rows();
 
-		rescache.add_string (fs::path(ifpath).filename().string());
+		// - slide info
+		rescache.add_string (ifpath);
 		rescache.add_string (mfpath);
-		rescache.add_numeric (1); // dummy ROI label of a whole-slide image
+		rescache.add_numeric (r.label);
+
+		// - features
 		for (auto& enabdF : F)
 		{
 			auto fc = std::get<1>(enabdF);
@@ -186,7 +189,7 @@ namespace Nyxus
 				int nAng = GLCMFeature::angles.size();
 				for (int i = 0; i < nAng; i++)
 				{
-					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 				}
 
 				// Proceed with other features
@@ -202,7 +205,7 @@ namespace Nyxus
 				int nAng = 4; // check GLRLMFeature::rotAngles
 				for (int i = 0; i < nAng; i++)
 				{
-					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 				}
 				// Proceed with other features
 				continue;
@@ -213,7 +216,7 @@ namespace Nyxus
 			{
 				for (auto i = 0; i < GaborFeature::f0_theta_pairs.size(); i++)
 				{
-					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 				}
 				// Proceed with other features
 				continue;
@@ -224,7 +227,7 @@ namespace Nyxus
 			{
 				for (int i = 0; i < ZernikeFeature::NUM_FEATURE_VALS; i++)
 				{
-					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 				}
 				// Proceed with other features
 				continue;
@@ -235,7 +238,7 @@ namespace Nyxus
 			{
 				for (auto i = 0; i < RadialDistributionFeature::num_features_FracAtD; i++)
 				{
-					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 				}
 				// Proceed with other features
 				continue;
@@ -244,7 +247,7 @@ namespace Nyxus
 			{
 				for (auto i = 0; i < RadialDistributionFeature::num_features_MeanFrac; i++)
 				{
-					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 				}
 				// Proceed with other features
 				continue;
@@ -253,14 +256,14 @@ namespace Nyxus
 			{
 				for (auto i = 0; i < RadialDistributionFeature::num_features_RadialCV; i++)
 				{
-					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+					rescache.add_numeric(Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 				}
 				// Proceed with other features
 				continue;
 			}
 
 			// Regular feature
-			rescache.add_numeric(Nyxus::force_finite_number(vv[0], theEnvironment.nan_substitute));
+			rescache.add_numeric(Nyxus::force_finite_number(vv[0], theEnvironment.resultOptions.noval()));
 		}
 
 		return true;
@@ -436,7 +439,7 @@ namespace Nyxus
 					int nAng = GLCMFeature::angles.size();
 					for (int i = 0; i < nAng; i++)
 					{
-						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 					}
 
 					// Proceed with other features
@@ -452,7 +455,7 @@ namespace Nyxus
 					int nAng = 4; // check GLRLMFeature::rotAngles
 					for (int i = 0; i < nAng; i++)
 					{
-						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 					}
 					// Proceed with other features
 					continue;
@@ -463,7 +466,7 @@ namespace Nyxus
 				{
 					for (auto i = 0; i < GaborFeature::f0_theta_pairs.size(); i++)
 					{
-						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 					}
 					// Proceed with other features
 					continue;
@@ -474,7 +477,7 @@ namespace Nyxus
 				{
 					for (int i = 0; i < ZernikeFeature::NUM_FEATURE_VALS; i++)
 					{
-						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 					}
 					// Proceed with other features
 					continue;
@@ -485,7 +488,7 @@ namespace Nyxus
 				{
 					for (auto i = 0; i < RadialDistributionFeature::num_features_FracAtD; i++)
 					{
-						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 					}
 					// Proceed with other features
 					continue;
@@ -494,7 +497,7 @@ namespace Nyxus
 				{
 					for (auto i = 0; i < RadialDistributionFeature::num_features_MeanFrac; i++)
 					{
-						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 					}
 					// Proceed with other features
 					continue;
@@ -503,14 +506,14 @@ namespace Nyxus
 				{
 					for (auto i = 0; i < RadialDistributionFeature::num_features_RadialCV; i++)
 					{
-						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.nan_substitute));
+						rescache.add_numeric (Nyxus::force_finite_number(vv[i], theEnvironment.resultOptions.noval()));
 					}
 					// Proceed with other features
 					continue;
 				}
 
 				// Regular feature
-				rescache.add_numeric (Nyxus::force_finite_number(vv[0], theEnvironment.nan_substitute));
+				rescache.add_numeric (Nyxus::force_finite_number(vv[0], theEnvironment.resultOptions.noval()));
 			}
 		}
 

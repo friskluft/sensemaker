@@ -42,8 +42,9 @@ namespace Nyxus
 			static unsigned long long initial_freeRamAmt = 0;
 			if (initial_freeRamAmt == 0)
 				initial_freeRamAmt = freeRamAmt;
-			double memDiff = double(freeRamAmt) - double(initial_freeRamAmt);
-			VERBOSLVL1(std::cout << std::setw(15) << freeRamAmt << " bytes free (" << "consumed=" << memDiff << ") ")
+			unsigned long long memDiff = std::max (freeRamAmt, initial_freeRamAmt) - std::min(freeRamAmt, initial_freeRamAmt);
+			char diffSign = freeRamAmt < initial_freeRamAmt ? '-' : '+';
+			VERBOSLVL1(std::cout << std::setw(15) << Nyxus::virguler(freeRamAmt) << " bytes free (" << "consumed=" << diffSign << Nyxus::virguler(memDiff) << ") ")
 
 			// Display (1) dataset progress info and (2) file pair info
 			int digits = 2, k = (int) std::pow(10.f, digits);
@@ -129,7 +130,7 @@ namespace Nyxus
 		if (nontrivRoiLabels.size())
 		{
 			VERBOSLVL2(std::cout << "Processing oversized ROIs\n";)
-				processNontrivialRois(nontrivRoiLabels, intens_fpath, label_fpath, 1/*num_FL_threads*/);
+				processNontrivialRois(nontrivRoiLabels, intens_fpath, label_fpath);
 		}
 
 		return true;
@@ -138,8 +139,6 @@ namespace Nyxus
 	int processDataset_3D_segmented (
 		const std::vector <Imgfile3D_layoutA>& intensFiles,
 		const std::vector <Imgfile3D_layoutA>& labelFiles,
-		int numFastloaderThreads,
-		int numSensemakerThreads,
 		int numReduceThreads,
 		int min_online_roi_size,
 		const SaveOption saveOption,
@@ -208,7 +207,7 @@ namespace Nyxus
 			}
 			else if (saveOption == SaveOption::saveCSV)
 			{
-				ok = save_features_2_csv(ifile.fname, mfile.fname, outputPath);
+				ok = save_features_2_csv(ifile.fname, mfile.fname, outputPath, theEnvironment.resultOptions.need_aggregation());
 
 				if (ok == false)
 				{

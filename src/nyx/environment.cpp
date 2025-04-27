@@ -116,8 +116,6 @@ void Environment::show_cmdline_help()
 		<< "\t\t" << OPT << XYRESOLUTION << "=<number of pixels per centimeter, an integer or floating point number> \n"
 		<< "\t\t" << OPT << EMBPIXSZ << "=<number> \n"
 		<< "\t\t\tDefault: 0 \n"
-		<< "\t\t" << OPT << LOADERTHREADS << "=<number of image loader threads> \n"
-		<< "\t\t\tDefault: 1 \n"
 		<< "\t\t" << OPT << REDUCETHREADS << "=<number of feature reduction threads> \n"
 		<< "\t\t\tDefault: 1 \n"
 		<< "\t\t" << OPT << PXLDIST << "=<number of pixels as neighbor features radius> \n"
@@ -164,6 +162,19 @@ void Environment::show_cmdline_help()
 		<< "\t\t" << OPT << GABOR_THRESHOLD << "=<lower threshold of the filtered image to baseline ratio> \n"
 		<< "\t\t\tDefault: 0.025 \n";
 
+	std::cout << "\t\t" << OPT << ANISO_X << "=<x anisotropy> \n"
+		<< "\t\t\tDefault: 1 \n"
+		<< "\t\t" << OPT << ANISO_Y << "=<y anisotropy> \n"
+		<< "\t\t\tDefault: 1 \n"
+		<< "\t\t" << OPT << ANISO_Z << "=<z anisotropy> \n"
+		<< "\t\t\tDefault: 1 \n";
+
+	std::cout << "\t\t" << OPT << NOVAL << "=<no-value substitute> \n\t\t\tDefault: 0.0 \n" 
+		<< "\t\t" << TINYVAL << "=<tiny-value substitute> \n\t\t\tDefault: 1e-10 \n"
+		<< "\t\t" << AGGREGATE << "=<true or false to aggregate features by slide> \n\t\t\tDefault: false \n"
+		<< "\t\t" << ANNOTATE << "=<true or false to extract annotations from slide names and repoer as feature table columns> \n\t\t\tDefault: false \n"
+		<< "\t\t" << ANNOT_SEP << "=<character used as annotation field separator> \n\t\t\tDefault: _ \n";
+
 	std::cout << "\t\t" << OPT << NESTEDROI_CHNL_SIGNATURE << "=<comma separated denominators of \\pi> \n"
 		<< "\t\t" << OPT << NESTEDROI_PARENT_CHNL << "=<number of the parent channel e.g. 1\n"
 		<< "\t\t" << OPT << NESTEDROI_CHILD_CHNL << "=<number of the child channel e.g. 0\n"
@@ -194,8 +205,6 @@ void Environment::show_summary(const std::string& head, const std::string& tail)
 		<< "\tfile pattern\t" << rawFilePattern << "\n"
 		<< "\tembedded pixel size\t" << embedded_pixel_size << "\n"
 		<< "\toutput type\t" << rawOutpType << "\n"
-		<< "\t# of image loader threads\t" << n_loader_threads << "\n"
-		<< "\t# of pixel scanner threads\t" << n_pixel_scan_threads << "\n"
 		<< "\t# of post-processing threads\t" << n_reduce_threads << "\n"
 		<< "\tpixel distance\t" << n_pixel_distance << "\n"
 		<< "\tverbosity level\t" << verbosity_level << "\n";
@@ -248,6 +257,9 @@ void Environment::show_summary(const std::string& head, const std::string& tail)
 
 	if (!gaborOptions.empty())
 		std::cout << "\tGabor feature options: " << gaborOptions.get_summary_text() << "\n";
+
+	if (!anisoOptions.nothing2parse())
+		std::cout << "\tAnisotropy options: " << anisoOptions.get_summary_text() << "\n";
 
 	// Real valued TIFF
 	if (!fpimageOptions.empty())
@@ -319,8 +331,6 @@ bool Environment::find_int_argument(std::vector<std::string>::iterator& i, const
 	return false;
 }
 
-
-
 /**
  * @brief Parses the command line. Caller needn't display command line help screen to the user after call
  *
@@ -359,8 +369,6 @@ bool Environment::parse_cmdline(int argc, char** argv)
 			find_string_argument(i, FILEPATTERN, rawFilePattern) ||
 			find_string_argument(i, OUTPUTTYPE, rawOutpType) ||
 			find_string_argument(i, EMBPIXSZ, embedded_pixel_size) ||
-			find_string_argument(i, LOADERTHREADS, loader_threads) ||
-			find_string_argument(i, PXLSCANTHREADS, pixel_scan_threads) ||
 			find_string_argument(i, REDUCETHREADS, reduce_threads) ||
 			find_string_argument(i, GLCMANGLES, glcmOptions.rawAngles) ||
 			find_string_argument(i, GLCMOFFSET, glcmOptions.rawOffs) ||
@@ -378,6 +386,17 @@ bool Environment::parse_cmdline(int argc, char** argv)
 			find_string_argument(i, GABOR_F0, gaborOptions.rawF0) ||
 			find_string_argument(i, GABOR_THETA, gaborOptions.rawTheta) ||
 			find_string_argument(i, GABOR_THRESHOLD, gaborOptions.rawGrayThreshold)
+
+			|| find_string_argument (i, ANISO_X, anisoOptions.raw_aniso_x)
+			|| find_string_argument (i, ANISO_Y, anisoOptions.raw_aniso_y)
+			|| find_string_argument (i, ANISO_Z, anisoOptions.raw_aniso_z)
+
+			|| find_string_argument(i, NOVAL, resultOptions.raw_noval)
+			|| find_string_argument(i, TINYVAL, resultOptions.raw_tiny)
+			|| find_string_argument(i, AGGREGATE, resultOptions.raw_aggregate)
+			|| find_string_argument(i, ANNOTATE, resultOptions.raw_annotate)
+			|| find_string_argument(i, ANNOT_SEP, resultOptions.raw_anno_separator)
+
 			|| find_string_argument(i, NESTEDROI_CHNL_SIGNATURE, nestedOptions.rawChannelSignature)
 			|| find_string_argument(i, NESTEDROI_PARENT_CHNL, nestedOptions.rawParentChannelNo)
 			|| find_string_argument(i, NESTEDROI_CHILD_CHNL, nestedOptions.rawChildChannelNo)
@@ -552,25 +571,6 @@ bool Environment::parse_cmdline(int argc, char** argv)
 	}
 
 	//==== Check numeric parameters
-	if (!loader_threads.empty())
-	{
-		// string -> integer
-		if (sscanf(loader_threads.c_str(), "%d", &n_loader_threads) != 1 || n_loader_threads <= 0)
-		{
-			std::cerr << "Error: " << LOADERTHREADS << "=" << loader_threads << ": expecting a positive integer constant\n";
-			return false;
-		}
-	}
-
-	if (!pixel_scan_threads.empty())
-	{
-		// string -> integer
-		if (sscanf(pixel_scan_threads.c_str(), "%d", &n_pixel_scan_threads) != 1 || n_pixel_scan_threads <= 0)
-		{
-			std::cerr << "Error: " << PXLSCANTHREADS << "=" << pixel_scan_threads << ": expecting a positive integer constant\n";
-			return false;
-		}
-	}
 
 	if (!reduce_threads.empty())
 	{
@@ -693,6 +693,28 @@ bool Environment::parse_cmdline(int argc, char** argv)
 		}
 	}
 
+	//==== parse anisotropy options
+	if (!anisoOptions.nothing2parse())
+	{
+		auto [ok, msg] = parse_aniso_options_raw_inputs();
+		if (!ok)
+		{
+			std::cerr << *msg << "\n";
+			return false;
+		}
+	}
+
+	//==== parse result options
+	if (!resultOptions.nothing2parse())
+	{
+		auto [ok, msg] = parse_result_options_4cli();
+		if (!ok)
+		{
+			std::cerr << *msg << "\n";
+			return false;
+		}
+	}
+
 	//==== Parse nested ROI options
 	if (!nestedOptions.empty())
 	{
@@ -729,7 +751,7 @@ bool Environment::parse_cmdline(int argc, char** argv)
 	}
 	#endif
 
-	//==== Parse desired features
+	//==== Parse user's feature selection
 
 	// --Try to pick up features from a text file treating 'rawFeatures' as a feature file path-name
 	if (rawFeatures.length() > 0 && Nyxus::existsOnFilesystem(rawFeatures))
@@ -746,7 +768,6 @@ bool Environment::parse_cmdline(int argc, char** argv)
 				continue;
 
 			// Consume the purified feature name
-			// --insert comma after 1st item
 			if (featureList.length() > 0)
 				// --no need for inserted comma if the item came with its own comma
 				if (pureLn[pureLn.size() - 1] != ',')
@@ -919,6 +940,18 @@ bool Environment::parse_fpimage_options_raw_inputs(std::string& error_message)
 		return false;
 	}
 	return true;
+}
+
+std::tuple<bool, std::optional<std::string>> Environment::parse_aniso_options_raw_inputs()
+{
+	auto [ok, msg] = anisoOptions.parse_input();
+	return { ok, msg };
+}
+
+std::tuple<bool, std::optional<std::string>>  Environment::parse_result_options_4cli()
+{
+	auto [ok, msg] = resultOptions.parse_input();
+	return { ok, msg };
 }
 
 bool Environment::parse_nested_options_raw_inputs(std::string& error_message)

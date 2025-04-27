@@ -23,17 +23,15 @@ namespace Nyxus
 
     static void load_test_roi_data (LR& roidata, const NyxusPixel* testData, size_t count)
     {
-        int dummyLabel = 100, dummyTile = 200;
-
         // -- mocking gatherRoisMetrics():
         for (auto i=0; i<count; i++)
         {
             const NyxusPixel& px = testData[i];
             // -- mocking feed_pixel_2_metrics ():
             if (roidata.aux_area == 0)
-                init_label_record_2(roidata, "theSegFname", "theIntFname", px.x, px.y, dummyLabel, px.intensity, dummyTile);
+                init_label_record_3 (roidata, px.x, px.y, px.intensity);
             else
-                update_label_record_2(roidata, px.x, px.y, dummyLabel, px.intensity, dummyTile);
+                update_label_record_3 (roidata, px.x, px.y, px.intensity);
         }
 
         // -- mocking scanTrivialRois():
@@ -47,7 +45,6 @@ namespace Nyxus
 
     static void load_masked_test_roi_data (LR& roidata, const NyxusPixel* intensityData, const NyxusPixel* maskData, size_t count)
     {
-        int dummyLabel = 100, dummyTile = 200;
         // -- mocking phase 1, gatherRoisMetrics():
         for (auto i = 0; i < count; i++)
         {
@@ -59,9 +56,9 @@ namespace Nyxus
             const NyxusPixel& px = intensityData[i];
             // -- mocking feed_pixel_2_metrics ():
             if (roidata.aux_area == 0)
-                init_label_record_2(roidata, "theSegFname", "theIntFname", px.x, px.y, dummyLabel, px.intensity, dummyTile);
+                init_label_record_3(roidata, px.x, px.y, px.intensity);
             else
-                update_label_record_2(roidata, px.x, px.y, dummyLabel, px.intensity, dummyTile);
+                update_label_record_3(roidata, px.x, px.y, px.intensity);
         }
         // -- mocking phase 2, scanTrivialRois():
         for (auto i = 0; i < count; i++)
@@ -75,6 +72,10 @@ namespace Nyxus
             // -- mocking feed_pixel_2_cache ():
             roidata.raw_pixels.push_back(Pixel2(px.x, px.y, px.intensity));
         }
+
+        // Anisotropy (none)
+        roidata.make_nonanisotropic_aabb();
+
         // -- allocating the image matrix (roidata.aux_image_matrix)
         //      (Phase 1 creates roidata.aabb giving us ROI's dimensions)
         roidata.aux_image_matrix.allocate(
@@ -86,7 +87,7 @@ namespace Nyxus
 
     static void load_test_roi_data(LR& roidata, int data_idx, bool allocate_IM = true)
     {
-        int dummyLabel = 100, dummyTile = 200;
+        int dummyLabel = 100;
 
         // -- mocking gatherRoisMetrics():
         int i = 0;
@@ -96,9 +97,9 @@ namespace Nyxus
         {
             // -- mocking feed_pixel_2_metrics ():
             if (roidata.aux_area == 0)
-                init_label_record_2(roidata, "theSegFname", "theIntFname", i%w, i/w, dummyLabel, px, dummyTile);
+                init_label_record_2(roidata, "theSegFname", "theIntFname", i%w, i/w, dummyLabel, px);
             else
-                update_label_record_2(roidata, i%w, i/w, dummyLabel, px, dummyTile);
+                update_label_record_2(roidata, i%w, i/w, dummyLabel, px);
 
             ++i;
         }
@@ -111,6 +112,10 @@ namespace Nyxus
             ++i;
         }
 
+        // Anisotropy (none)
+        roidata.make_nonanisotropic_aabb();
+
+        // image matrix
         if (allocate_IM)
             roidata.aux_image_matrix = ImageMatrix(roidata.raw_pixels);
 

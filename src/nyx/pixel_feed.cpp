@@ -16,8 +16,7 @@ namespace Nyxus
 	/// @param y -- y-coordinate of the pixel in the image
 	/// @param label -- label of pixel's segment 
 	/// @param intensity -- pixel's intensity
-	/// @param tile_index -- index of pixel's tile in the image
-	void feed_pixel_2_metrics(int x, int y, PixIntens intensity, int label, unsigned int tile_index)
+	void feed_pixel_2_metrics(int x, int y, PixIntens intensity, int label, int sidx)
 	{
 		if (uniqueLabels.find(label) == uniqueLabels.end())
 		{
@@ -25,19 +24,20 @@ namespace Nyxus
 			uniqueLabels.insert(label);
 
 			// Initialize the ROI label record
-			LR newData;
-			init_label_record_2(newData, theSegFname, theIntFname, x, y, label, intensity, tile_index);
-			roiData[label] = newData;
+			LR newRoi (label);
+			newRoi.slide_idx = sidx;
+			init_label_record_3 (newRoi, x, y, intensity);
+			roiData[label] = newRoi;
 		}
 		else
 		{
 			// Update basic ROI info (info that doesn't require costly calculations)
-			LR& existingData = roiData[label];
-			update_label_record_2(existingData, x, y, label, intensity, tile_index);
+			LR& existingRoi = roiData[label];
+			update_label_record_3 (existingRoi, x, y, intensity);
 		}
 	}
 
-	void feed_pixel_2_metrics_3D (int x, int y, int z, PixIntens intensity, int label, unsigned int tile_index)
+	void feed_pixel_2_metrics_3D (int x, int y, int z, PixIntens intensity, int label)
 	{
 		if (uniqueLabels.find(label) == uniqueLabels.end())
 		{
@@ -45,15 +45,15 @@ namespace Nyxus
 			uniqueLabels.insert(label);
 
 			// Initialize the ROI label record
-			LR newData;
-			init_label_record_3D (newData, theSegFname, theIntFname, x, y, z, label, intensity, tile_index);
+			LR newData (label);
+			init_label_record_3D (newData, theSegFname, theIntFname, x, y, z, label, intensity);
 			roiData[label] = newData;
 		}
 		else
 		{
 			// Update basic ROI info (info that doesn't require costly calculations)
 			LR& existingData = roiData[label];
-			update_label_record_3D (existingData, x, y, z, label, intensity, tile_index);
+			update_label_record_3D (existingData, x, y, z, label, intensity);
 		}
 	}
 
